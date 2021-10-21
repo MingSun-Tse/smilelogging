@@ -1,4 +1,4 @@
-# researchlogging
+# smilelogging
 Python logging package for easy reproducible experimenting in research.
 
 
@@ -98,9 +98,6 @@ CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train an
 ```
 This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experiments` is expected to store the *formal* experiment results).
 
-
-
-**More explanantions about the arguments**
 
 ## Collaboration / Suggestions
 Currently, this is still a baby project. Any collaboration or suggestions are welcome to Huan Wang (Email: `wang.huan@northeastern.edu`).
