@@ -4,7 +4,7 @@ Python logging package for easy reproducible experimenting in research.
 
 ## Why you may need this package
 This project is meant to provide an easy-to-use (as easy as possible) package to enable *reproducible* experimenting in research.
-By "reproducible", I mean such an awkward situation you may also encounter:
+By "reproducible", we mean such an awkward situation you may also encounter:
 > I am doing some project. I got a fatanstic idea some time (one week, one month, or even one year) ago. Now I am looking at the results of that experiment, but I just cannot reproduce them anymore. I cannot remember what hyper-prarameters I used. Even worse, since then I've modified the code (a lot). I don't know where I messed up...
 
 If you do not use this package, usually, what you can do may be:
@@ -12,9 +12,9 @@ If you do not use this package, usually, what you can do may be:
 - Second, before each experiment, set up a *unique* experiment folder (with a unique ID to label that experiment -- we call it `ExpID`). 
 - Third, when running an experiment, print your git commit ID (we call it `CodeID`) and `arguments` in the log.
 
-Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as I know the ExpID, I should be able to rerun the experiment in exactly the same condition.
+Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the ExpID, we should be able to rerun the experiment in exactly the same condition.
 
-These steps are pretty simple, but if you write them over and over again on each project, it can still be quite annoying. This package is meant to save you from this with basically 3~4 lines of code change.
+These steps are pretty simple, but if you write them over and over again on each project, it can still be quite annoying. This package is meant to **save you with basically 3~4 lines of code change**.
 
 
 ## Usage
@@ -26,7 +26,7 @@ pip install researchlogging --upgrade # --upgrade to make sure you install the l
 
 **Step 1: Modify your code**
 
-I use the official [PyTorch ImageNet example](https://github.com/pytorch/examples/blob/master/imagenet/main.py) to give an example.
+Here we use the official [PyTorch ImageNet example](https://github.com/pytorch/examples/blob/master/imagenet/main.py) to give an example.
 
 ```
 # add this in your main function, somewhere proper.
@@ -74,7 +74,7 @@ Experiments/
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` as well as the head of `log/log.txt`. Below is an example of the first few lines of a log.txt. It tells us exactly what snippet is used when running this experiment (and the code path as well); also, all the arguments are saved.
 ```
-cd /home2/wanghuan/Projects/TestProject
+cd /home/wanghuan/Projects/TestProject
 CUDA_VISIBLE_DEVICES=1 python main.py -a resnet18 /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/ --project_name Scratch__resnet18__imagenet --screen_print
 
 ('arch': resnet18) ('batch_size': 256) ('cache_ignore': ) ('CodeID': ) ('data': /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/) ('debug': False) ('dist_backend': nccl) ('dist_url': tcp://224.66.41.62:23456) ('epochs': 90) ('evaluate': False) ('gpu': None) ('lr': 0.1) ('momentum': 0.9) ('multiprocessing_distributed': False) ('note': ) ('pretrained': False) ('print_freq': 10) ('project_name': Scratch__resnet18__imagenet) ('rank': -1) ('resume': ) ('screen_print': True) ('seed': None) ('start_epoch': 0) ('weight_decay': 0.0001) ('workers': 4) ('world_size': -1)
@@ -91,7 +91,7 @@ gen_img_path = logger.gen_img_path
 
 
 **More explanantions about the arguments and more tips**
-- `--screen_print` means the logs will also be print to the console (namely, your screen). If it not used, the log will only be saved to `log/log.txt`, not printed to screen. 
+- `--screen_print` means the logs will also be print to the console (namely, your screen). If it is not used, the log will only be saved to `log/log.txt`, not printed to screen. 
 - If you are debugging code, you may not want to create an experiment folder under `Experiments`. Then use `--debug`, for example:
 ```
 CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train and val folders] --debug
