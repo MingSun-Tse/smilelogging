@@ -21,7 +21,7 @@ These steps are pretty simple, but if you write them over and over again on each
 
 **Step 0: Install the package**
 ```
-pip install researchlogging --upgrade # --upgrade to make sure you install the latest version
+pip install smilelogging --upgrade # --upgrade to make sure you install the latest version
 ```
 
 **Step 1: Modify your code**
@@ -30,12 +30,12 @@ Here we use the official [PyTorch ImageNet example](https://github.com/pytorch/e
 
 ```
 # add this in your main function, somewhere proper.
-from researchlogging import Logger 
+from smilelogging import Logger 
 
 # replace argument parser
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')  
 ==> 
-from researchlogging import argparser as parser
+from smilelogging import argparser as parser
 
 # add logger using this pacakge
 args = parser.parse_args()
