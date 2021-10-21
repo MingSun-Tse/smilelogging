@@ -13,7 +13,7 @@ If you do not use this package, usually, what you can do may be:
 
 Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the `ExpID`, we should be able to rerun the experiment under the same condition.
 
-These steps are pretty simple, but if you write them over and over again in each project, it can still be quite annoying. This package is meant to **save you with basically 3~4 lines of code change**.
+These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying. This package is meant to **save you with basically 3~4 lines of code change**.
 
 
 ## Usage
