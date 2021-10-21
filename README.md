@@ -46,7 +46,7 @@ global print; print = logger.log_printer.logprint # change print function so tha
 ```
 > TIPS: overwriting the default python print func may not be a good practice, a better way may be `logprint = logger.log_printer.logprint`, and use it like `logprint('Test accuracy: %.4f' % test_acc)`. This will print the log to a txt file at path `log/log.txt`.
 
-**Step 1: Run experiment**
+**Step 2: Run experiments**
 
 The original ImageNet training snippet is:
 ```
@@ -57,7 +57,7 @@ Now, try this:
 ```
 CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train and val folders] --project_name Scratch__resnet18__imagenet --screen_print
 ```
-> This snippet will set up an experiment folder under path `Experiments/Scratch__resnet18__imagenet_XXX`. That `XXX` is an ExpID automatically assigned by the time running this snippet. Here is an example on my PC:
+> This snippet will set up an experiment folder under path `Experiments/Scratch__resnet18__imagenet_XXX`. That `XXX` thing is an ExpID automatically assigned by the time running this snippet. Here is an example on my PC:
 ```
 Experiments/
 └── Scratch__resnet18__imagenet_SERVER138-20211021-145936
@@ -71,7 +71,9 @@ Experiments/
     └── weights
 ```
 
-<span style="color:red">Congrats! You're (almost) all set! </span>
+```diff
+- Congrats! You're (almost) all set!
+```
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` as well as the head of `log/log.txt`. Below is an example of the first few lines of a log.txt. It tells us exactly what snippet is used when running this experiment (and the code path as well); also, all the arguments are saved.
 ```
