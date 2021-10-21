@@ -1,0 +1,1 @@
+from ezlogging.logger import Logger
