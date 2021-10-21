@@ -1,0 +1,1 @@
+from researchlogging.logger import Logger
