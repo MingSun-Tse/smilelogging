@@ -3,7 +3,7 @@ Python logging package for easy reproducible experimenting in research.
 
 
 ## Why you may need this package
-This project is meant to provide an easy-to-use (as easy as possible) package to enable *reproducible* experimenting in research. Here is an struggling situation you may also encountered:
+This project is meant to provide an easy-to-use (as easy as possible) package to enable *reproducible* experimenting in research. Here is a struggling situation you may also encountered:
 > I am doing some project. I got a fatanstic idea some time (one week, one month, or even one year) ago. Now I am looking at the results of that experiment, but I just cannot reproduce them anymore. I cannot remember which script and what hyper-prarameters I used. Even worse, since then I've modified the code (a lot). I don't know where I messed it up...
 
 If you do not use this package, usually, what you can do may be:
