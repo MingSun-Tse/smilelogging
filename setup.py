@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
   name = 'smilelogging',         # How you named your package folder (MyLib)
   packages = ['smilelogging'],   # Chose the same as "name"
-  version = '0.1.1',      # Start with a small number and increase it with every change you make
+  version = '0.1.2',      # Start with a small number and increase it with every change you make
   license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description = 'Python logging package for easy reproducible experimenting in research',  # Give a short description about your library
   author = 'Huan Wang',                   # Type in your name
