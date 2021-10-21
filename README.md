@@ -71,14 +71,17 @@ Experiments/
     └── weights
 ```
 
-:sparkles: Congrats:exclamation: You're (almost) all set!
+<center>:sparkles: Congrats:exclamation: You're (almost) all set! </center>
 
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` as well as the head of `log/log.txt`. Below is an example of the first few lines of a log.txt. It tells us exactly what snippet is used when running this experiment (and the code path as well); also, all the arguments are saved.
-> cd /home/wanghuan/Projects/TestProject
-> CUDA_VISIBLE_DEVICES=1 python main.py -a resnet18 /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/ --project_name Scratch__resnet18__imagenet --screen_print
->
-> ('arch': resnet18) ('batch_size': 256) ('cache_ignore': ) ('CodeID': ) ('data': /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/) ('debug': False) ('dist_backend': nccl) ('dist_url': tcp://224.66.41.62:23456) ('epochs': 90) ('evaluate': False) ('gpu': None) ('lr': 0.1) ('momentum': 0.9) ('multiprocessing_distributed': False) ('note': ) ('pretrained': False) ('print_freq': 10) ('project_name': Scratch__resnet18__imagenet) ('rank': -1) ('resume': ) ('screen_print': True) ('seed': None) ('start_epoch': 0) ('weight_decay': 0.0001) ('workers': 4) ('world_size': -1)
+``` 
+cd /home/wanghuan/Projects/TestProject
+CUDA_VISIBLE_DEVICES=1 python main.py -a resnet18 /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/ --project_name Scratch__resnet18__imagenet --screen_print
+
+('arch': resnet18) ('batch_size': 256) ('cache_ignore': ) ('CodeID': ) ('data': /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/) ('debug': False) ('dist_backend': nccl) ('dist_url': tcp://224.66.41.62:23456) ('epochs': 90) ('evaluate': False) ('gpu': None) ('lr': 0.1) ('momentum': 0.9) ('multiprocessing_distributed': False) ('note': ) ('pretrained': False) ('print_freq': 10) ('project_name': Scratch__resnet18__imagenet) ('rank': -1) ('resume': ) ('screen_print': True) ('seed': None) ('start_epoch': 0) ('weight_decay': 0.0001) ('workers': 4) ('world_size': -1)
+```
+
 
 **More explanantions about the folder setting**
 
