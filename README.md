@@ -71,9 +71,8 @@ Experiments/
     └── weights
 ```
 
-```diff
-- Congrats! You're (almost) all set!
-```
+:sparkles: Congrats:exclamation: You're (almost) all set!
+
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` as well as the head of `log/log.txt`. Below is an example of the first few lines of a log.txt. It tells us exactly what snippet is used when running this experiment (and the code path as well); also, all the arguments are saved.
 > cd /home/wanghuan/Projects/TestProject
