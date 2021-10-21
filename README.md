@@ -70,7 +70,7 @@ Experiments/
     │   └── plot
     └── weights
 ```
-<h4 align="center">:sparkles: Congrats:exclamation: You're all set:exclamation:</h4>
+<h4 align="center">:sparkles:Congrats:exclamation:You're all set:exclamation:</h4>
 
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` and in the head of `log/log.txt`. Below is an example of the first few lines of `log/log.txt`:
