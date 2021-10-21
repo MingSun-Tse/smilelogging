@@ -11,7 +11,7 @@ If you do not use this package, usually, what you can do may be:
 - Second, before each experiment, set up a *unique* experiment folder (with a unique ID to label that experiment -- we call it `ExpID`). 
 - Third, when running an experiment, print your git commit ID (we call it `CodeID`) and `arguments` in the log.
 
-Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the ExpID, we should be able to rerun the experiment under the same condition.
+Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the `ExpID`, we should be able to rerun the experiment under the same condition.
 
 These steps are pretty simple, but if you write them over and over again in each project, it can still be quite annoying. This package is meant to **save you with basically 3~4 lines of code change**.
 
@@ -20,7 +20,8 @@ These steps are pretty simple, but if you write them over and over again in each
 
 **Step 0: Install the package (>= python3.4)**
 ```
-pip install smilelogging --upgrade # --upgrade to make sure you install the latest version
+# --upgrade to make sure you install the latest version
+pip install smilelogging --upgrade
 ```
 
 **Step 1: Modify your code**
@@ -28,7 +29,7 @@ pip install smilelogging --upgrade # --upgrade to make sure you install the late
 Here we use the official [PyTorch ImageNet example](https://github.com/pytorch/examples/blob/master/imagenet/main.py) to give an example.
 
 ```
-# add this in your main function, somewhere proper.
+# add this at the head of code
 from smilelogging import Logger 
 
 # replace argument parser
@@ -56,7 +57,7 @@ Now, try this:
 ```
 CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train and val folders] --project_name Scratch__resnet18__imagenet --screen_print
 ```
-> This snippet will set up an experiment folder under path `Experiments/Scratch__resnet18__imagenet_XXX`. That `XXX` thing is an ExpID automatically assigned by the time running this snippet. Below is an example on my PC by typing `tree Experiments` in the terminal:
+> This snippet will set up an experiment folder under path `Experiments/Scratch__resnet18__imagenet_XXX`. That `XXX` thing is an `ExpID` automatically assigned by the time running this snippet. Below is an example on my PC:
 ```
 Experiments/
 └── Scratch__resnet18__imagenet_SERVER138-20211021-145936
@@ -69,16 +70,25 @@ Experiments/
     │   └── plot
     └── weights
 ```
-<h3 align="center">:sparkles: Congrats:exclamation: You're (almost) all set!</h3>
+<h4 align="center">:sparkles: Congrats:exclamation: You're (almost) all set!</h4>
 
 
-As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` as well as the head of `log/log.txt`. Below is an example of the first few lines of a log.txt. It tells us exactly what snippet is used when running this experiment (and the code path as well); also, all the arguments are saved.
+As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` and in the head of `log/log.txt`. Below is an example of the first few lines of `log/log.txt`:
 ``` 
 cd /home/wanghuan/Projects/TestProject
-CUDA_VISIBLE_DEVICES=1 python main.py -a resnet18 /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/ --project_name Scratch__resnet18__imagenet --screen_print
+CUDA_VISIBLE_DEVICES=1 python main.py -a resnet18 /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/ --project Scracth_resnet18_imagenet --screen_print
 
-('arch': resnet18) ('batch_size': 256) ('cache_ignore': ) ('CodeID': ) ('data': /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/) ('debug': False) ('dist_backend': nccl) ('dist_url': tcp://224.66.41.62:23456) ('epochs': 90) ('evaluate': False) ('gpu': None) ('lr': 0.1) ('momentum': 0.9) ('multiprocessing_distributed': False) ('note': ) ('pretrained': False) ('print_freq': 10) ('project_name': Scratch__resnet18__imagenet) ('rank': -1) ('resume': ) ('screen_print': True) ('seed': None) ('start_epoch': 0) ('weight_decay': 0.0001) ('workers': 4) ('world_size': -1)
+('arch': resnet18) ('batch_size': 256) ('cache_ignore': ) ('CodeID': f30e6078) ('data': /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/) ('debug': False) ('dist_backend': nccl) ('dist_url': tcp://224.66.41.62:23456) ('epochs': 90) ('evaluate': False) ('gpu': None) ('lr': 0.1) ('momentum': 0.9) ('multiprocessing_distributed': False) ('note': ) ('pretrained': False) ('print_freq': 10) ('project_name': Scracth_resnet18_imagenet) ('rank': -1) ('resume': ) ('screen_print': True) ('seed': None) ('start_epoch': 0) ('weight_decay': 0.0001) ('workers': 4) ('world_size': -1)
+
+[180853 22509 2021/10/21-18:08:54] ==> Caching various config files to 'Experiments/Scracth_resnet18_imagenet_SERVER138-20211021-180853/.caches'
 ```
+Note, it tells us 
+- (1) where is the code
+- (2) what snippet is used when running this experiment
+- (3) what arguments are used
+- (4) what is the CodeID -- useful when rolling back to prior code versions with `git reset --hard <CodeID>`,
+- (5) where the code files (*.py, *.json, *.yaml etc) are backuped -- note the log line "==> Caching various config files to ...". Ideally, CodeID is already enough to get previous code. Caching code files is a double insurance.
+- (6) At the begining of each log line, the prefix "[180853 22509 2021/10/21-18:08:54]" is automatically added if the `logprint` func is used for print, where `180853` is short for the full ExpID `SERVER138-20211021-180853`, `22509` is the program pid (useful if you want to kill the job, e.g., `kill -9 22509`).
 
 
 **More explanantions about the folder setting**
