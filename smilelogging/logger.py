@@ -244,22 +244,27 @@ class Logger(object):
         if hasattr(self.args, 'CodeID') and self.args.CodeID:
             return self.args.CodeID
         else:
-            f = 'wh_git_status_%s.tmp' % time.time()
+            f = '.git_status_%s.tmp' % time.time()
             script = 'git status >> %s' % f
-            os.system(script)
-            x = open(f).readlines()
-            x = "".join(x)
-            os.remove(f)
-            if "Changes not staged for commit" in x:
-                self.log_printer("Warning! Your code is not commited. Cannot be too careful.")
+            try:
+                os.system(script)
+                x = open(f).readlines()
+                x = "".join(x)
+                os.remove(f)
+                if "Changes not staged for commit" in x:
+                    self.log_printer("Warning! Your code is not commited. Cannot be too careful.")
+                    time.sleep(3)
+
+                f = '.CodeID_file_%s.tmp' % time.time()
+                script = "git log --pretty=oneline >> %s" % f
+                os.system(script)
+                x = open(f).readline()
+                os.remove(f)
+                return x[:8]
+            except:
+                self.log_printer("Warning! Git not found under this project. It is HIGHLY recommended to use Git to manage code.")
                 time.sleep(3)
-            
-            f = 'wh_CodeID_file_%s.tmp' % time.time()
-            script = "git log --pretty=oneline >> %s" % f
-            os.system(script)
-            x = open(f).readline()
-            os.remove(f)
-            return x[:8]
+                return 'GitNotFound'
 
     def get_ExpID(self):
         self.SERVER = os.environ["SERVER"] if 'SERVER' in os.environ.keys() else ''
