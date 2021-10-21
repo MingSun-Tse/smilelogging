@@ -1,2 +1,2 @@
-# ezlogging
-Python logging package for easy reproducible experimenting
+# researchlogging
+Python logging package for easy reproducible experimenting in research
