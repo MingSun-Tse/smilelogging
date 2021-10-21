@@ -244,9 +244,10 @@ class Logger(object):
         if hasattr(self.args, 'CodeID') and self.args.CodeID:
             return self.args.CodeID
         else:
-            f = '.git_status_%s.tmp' % time.time()
-            script = 'git status >> %s' % f
-            try:
+            use_git = os.path.exists('.git')
+            if use_git:
+                f = '.git_status_%s.tmp' % time.time()
+                script = 'git status >> %s' % f
                 os.system(script)
                 x = open(f).readlines()
                 x = "".join(x)
@@ -261,7 +262,7 @@ class Logger(object):
                 x = open(f).readline()
                 os.remove(f)
                 return x[:8]
-            except:
+            else:
                 self.log_printer("Warning! Git not found under this project. Highly recommended to use Git to manage code.")
                 return 'GitNotFound'
 
