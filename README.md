@@ -42,7 +42,7 @@ args = parser.parse_args()
 ==> 
 args = parser.parse_args()
 logger = Logger(args)
-print = logger.log_printer.logprint # change print function so that logs can be printed to a txt file
+global print; print = logger.log_printer.logprint # change print function so that logs can be printed to a txt file
 ```
 > TIPS: overwriting the default python print func may not be a good practice, a better way may be `logprint = logger.log_printer.logprint`, and use it like `logprint('Test accuracy: %.4f' % test_acc)`. This will print the log to a txt file at path `log/log.txt`.
 

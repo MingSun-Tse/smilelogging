@@ -262,8 +262,7 @@ class Logger(object):
                 os.remove(f)
                 return x[:8]
             except:
-                self.log_printer("Warning! Git not found under this project. It is HIGHLY recommended to use Git to manage code.")
-                time.sleep(3)
+                self.log_printer("Warning! Git not found under this project. Highly recommended to use Git to manage code.")
                 return 'GitNotFound'
 
     def get_ExpID(self):
