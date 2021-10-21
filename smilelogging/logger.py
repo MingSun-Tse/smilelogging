@@ -213,7 +213,8 @@ class Logger(object):
     def __init__(self, args):
         self.args = args
 
-        # set up work folder
+        # set up experiment folder
+        self.use_git = os.path.exists('.git')
         self.ExpID = args.ExpID if hasattr(args, 'ExpID') and args.ExpID else self.get_ExpID()
         self.Exps_Dir = 'Experiments'
         if hasattr(self.args, 'Exps_Dir'):
@@ -227,7 +228,8 @@ class Logger(object):
         # initial print: save args
         self.print_script()
         self.print_nvidia_smi()
-        self.print_git_status()
+        if self.use_git:
+            self.print_git_status()
         self.print_note()
         if (not args.debug) and self.SERVER != '':
             # If self.SERVER != '', it shows this is Huan's computer, then call this func, which is just a small feature to my need.
@@ -244,8 +246,7 @@ class Logger(object):
         if hasattr(self.args, 'CodeID') and self.args.CodeID:
             return self.args.CodeID
         else:
-            use_git = os.path.exists('.git')
-            if use_git:
+            if self.use_git:
                 f = '.git_status_%s.tmp' % time.time()
                 script = 'git status >> %s' % f
                 os.system(script)
@@ -312,12 +313,8 @@ class Logger(object):
         os.system(script)
     
     def print_git_status(self):
-        out = pjoin(self.log_path, 'git_status.txt')
-        script = 'git status >> %s' % out
-        try:
-            os.system(script)
-        except:
-            pass
+        script = 'git status >> %s' % pjoin(self.log_path, 'git_status.txt')
+        os.system(script)
 
     def print_note(self):
         if hasattr(self.args, 'note') and self.args.note:
