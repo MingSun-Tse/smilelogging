@@ -29,15 +29,15 @@ pip install smilelogging --upgrade
 Here we use the official [PyTorch ImageNet example](https://github.com/pytorch/examples/blob/master/imagenet/main.py) to give an example.
 
 ```
-# add this at the head of code
+# 1. add this at the head of code
 from smilelogging import Logger 
 
-# replace argument parser
+# 2. replace argument parser
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')  
 ==> 
 from smilelogging import argparser as parser
 
-# add logger using this pacakge
+# 3. add logger and change print if necessary
 args = parser.parse_args()
 ==> 
 args = parser.parse_args()
@@ -70,7 +70,7 @@ Experiments/
     │   └── plot
     └── weights
 ```
-<h4 align="center">:sparkles: Congrats:exclamation: You're (almost) all set!</h4>
+<h4 align="center">:sparkles: Congrats:exclamation: You're all set:exclamation:</h4>
 
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` and in the head of `log/log.txt`. Below is an example of the first few lines of `log/log.txt`:
@@ -86,9 +86,9 @@ Note, it tells us
 - (1) where is the code
 - (2) what snippet is used when running this experiment
 - (3) what arguments are used
-- (4) what is the CodeID -- useful when rolling back to prior code versions with `git reset --hard <CodeID>`,
-- (5) where the code files (*.py, *.json, *.yaml etc) are backuped -- note the log line "==> Caching various config files to ...". Ideally, CodeID is already enough to get previous code. Caching code files is a double insurance.
-- (6) At the begining of each log line, the prefix "[180853 22509 2021/10/21-18:08:54]" is automatically added if the `logprint` func is used for print, where `180853` is short for the full ExpID `SERVER138-20211021-180853`, `22509` is the program pid (useful if you want to kill the job, e.g., `kill -9 22509`).
+- (4) what is the CodeID -- useful when rolling back to prior code versions (`git reset --hard <CodeID>`)
+- (5) where the code files (*.py, *.json, *.yaml etc) are backuped -- note the log line "==> Caching various config files to ...". Ideally, CodeID is already enough to get previous code. Caching code files is a double insurance
+- (6) At the begining of each log line, the prefix "[180853 22509 2021/10/21-18:08:54]" is automatically added if the `logprint` func is used for print, where `180853` is short for the full ExpID `SERVER138-20211021-180853`, `22509` is the program pid (useful if you want to kill the job, e.g., `kill -9 22509`)
 
 
 **More explanantions about the folder setting**
@@ -109,9 +109,13 @@ CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train an
 This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experiments` is expected to store the *formal* experiment results).
 
 
+
+## TODO
+- Add training and testing metric (like accuracy, PSNR) plots.
+
+
+
 ## Collaboration / Suggestions
 Currently, this is still a baby project. Any collaboration or suggestions are welcome to Huan Wang (Email: `wang.huan@northeastern.edu`).
 
 
-## TODO
-- Add training and testing metric (like accuracy, PSNR) plots.
