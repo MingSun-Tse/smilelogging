@@ -14,7 +14,7 @@ If you do not use this package, usually, what you can do may be:
 
 Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the ExpID, we should be able to rerun the experiment in exactly the same condition.
 
-These steps are pretty simple, but if you write them over and over again on each project, it can still be quite annoying. This package is meant to **save you with basically 3~4 lines of code change**.
+These steps are pretty simple, but if you write them over and over again in each project, it can still be quite annoying. This package is meant to **save you with basically 3~4 lines of code change**.
 
 
 ## Usage
@@ -47,7 +47,8 @@ print = logger.log_printer.logprint # change print function so that logs can be 
 > TIPS: overwriting the default python print func may not be a good practice, a better way may be `logprint = logger.log_printer.logprint`, and use it like `logprint('Test accuracy: %.4f' % test_acc)`. This will print the log to a txt file at path `log/log.txt`.
 
 **Step 1: Run experiment**
-The original ImageNet training snippet is: 
+
+The original ImageNet training snippet is:
 ```
 CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train and val folders]
 ```
@@ -101,3 +102,7 @@ This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experimen
 
 ## Collaboration / Suggestions
 Currently, this is still a baby project. Any collaboration or suggestions are welcome to Huan Wang (Email: `wang.huan@northeastern.edu`).
+
+
+## TODO
+- Add training and testing metric (like accuracy, PSNR) plots.
