@@ -3,16 +3,15 @@ Python logging package for easy reproducible experimenting in research.
 
 
 ## Why you may need this package
-This project is meant to provide an easy-to-use (as easy as possible) package to enable *reproducible* experimenting in research.
-By "reproducible", we mean such an awkward situation you may also encounter:
-> I am doing some project. I got a fatanstic idea some time (one week, one month, or even one year) ago. Now I am looking at the results of that experiment, but I just cannot reproduce them anymore. I cannot remember what hyper-prarameters I used. Even worse, since then I've modified the code (a lot). I don't know where I messed up...
+This project is meant to provide an easy-to-use (as easy as possible) package to enable *reproducible* experimenting in research. Here is an awkward situation you may also encountered:
+> I am doing some project. I got a fatanstic idea some time (one week, one month, or even one year) ago. Now I am looking at the results of that experiment, but I just cannot reproduce them anymore. I cannot remember which script and what hyper-prarameters I used. Even worse, since then I've modified the code (a lot). I don't know where I messed it up...
 
 If you do not use this package, usually, what you can do may be:
 - First, use Github to manage your code. Always run experiments after `git commit`. 
 - Second, before each experiment, set up a *unique* experiment folder (with a unique ID to label that experiment -- we call it `ExpID`). 
 - Third, when running an experiment, print your git commit ID (we call it `CodeID`) and `arguments` in the log.
 
-Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the ExpID, we should be able to rerun the experiment in exactly the same condition.
+Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the ExpID, we should be able to rerun the experiment under the same condition.
 
 These steps are pretty simple, but if you write them over and over again in each project, it can still be quite annoying. This package is meant to **save you with basically 3~4 lines of code change**.
 
@@ -57,7 +56,7 @@ Now, try this:
 ```
 CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train and val folders] --project_name Scratch__resnet18__imagenet --screen_print
 ```
-> This snippet will set up an experiment folder under path `Experiments/Scratch__resnet18__imagenet_XXX`. That `XXX` thing is an ExpID automatically assigned by the time running this snippet. Here is an example on my PC:
+> This snippet will set up an experiment folder under path `Experiments/Scratch__resnet18__imagenet_XXX`. That `XXX` thing is an ExpID automatically assigned by the time running this snippet. Below is an example on my PC by typing `tree Experiments` in the terminal:
 ```
 Experiments/
 └── Scratch__resnet18__imagenet_SERVER138-20211021-145936
@@ -70,8 +69,7 @@ Experiments/
     │   └── plot
     └── weights
 ```
-
-<center>:sparkles: Congrats:exclamation: You're (almost) all set! </center>
+<h3 align="center">:sparkles: Congrats:exclamation: You're (almost) all set!</h3>
 
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` as well as the head of `log/log.txt`. Below is an example of the first few lines of a log.txt. It tells us exactly what snippet is used when running this experiment (and the code path as well); also, all the arguments are saved.
