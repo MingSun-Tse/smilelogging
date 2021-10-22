@@ -1,10 +1,10 @@
 # smilelogging
-Python logging package for easy reproducible experimenting in research.
+Python logging package for easy reproducible experimenting in research. Happily developed by the members of [SMILE Lab](https://web.northeastern.edu/smilelab/).
 
 
 ## Why this package may help you
 This project is meant to provide an easy-to-use (as easy as possible) package to enable *reproducible* experimenting in research. Here is a struggling situation you may also encountered:
-> I am doing some project. I got a fatanstic idea some time (one week, one month, or even one year) ago. Now I am looking at the results of that experiment, but I just cannot reproduce them anymore. I cannot remember which script and what hyper-prarameters I used. Even worse, since then I've modified the code (a lot). I don't know where I messed it up...:cold_sweat:
+> I am doing some project. I got a fatanstic idea some time (one week, one month, or even one year) ago. Now I am looking at the results of that experiment, but I just cannot reproduce them anymore. I cannot remember which script and what hyper-prarameters I used. Even worse, since then I've modified the code (a lot). I don't know where I messed it up ...:cold_sweat:
 
 Usually, what you can do may be:
 - First, use Github to manage your code. Always run experiments after `git commit`. 
@@ -13,7 +13,7 @@ Usually, what you can do may be:
 
 Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the `ExpID`, we should be able to rerun the experiment under the same condition.
 
-These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying. **This package is meant to save you with basically 3~4 lines of code change**.
+These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying:anger:. **This package is meant to save you with basically 3~4 lines of code change**:yum:.
 
 
 ## Usage
@@ -94,7 +94,7 @@ gen_img_path = logger.gen_img_path
 - `--screen_print` means the logs will also be print to the console (namely, your screen). If it is not used, the log will only be saved to `log/log.txt`, not printed to screen. 
 - If you are debugging code, you may not want to create an experiment folder under `Experiments`. Then use `--debug`, for example:
 ```
-CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train and val folders] --debug
+python main.py --debug
 ```
 This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experiments` is expected to store the *formal* experiment results).
 - In the above, we use `print = logger.log_printer.logprint`. Overwriting the default python print func may not be a good practice, a better way may be `logprint = logger.log_printer.logprint`, and use it like `logprint('Test accuracy: %.4f' % test_acc)`. This will print the log to a txt file at path `log/log.txt`.

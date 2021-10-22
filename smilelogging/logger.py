@@ -4,11 +4,9 @@ import matplotlib.pyplot as plt
 from .utils import get_project_path, mkdirs
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from collections import OrderedDict
-import json, yaml
+import subprocess
+import yaml
 pjoin = os.path.join
-
-# globals
-CONFIDENTIAL_SERVERS = ['202', '008']
 
 class DoubleWriter():
     def __init__(self, f1, f2):
@@ -211,7 +209,6 @@ class Logger(object):
         self.args = args
 
         # set up experiment folder
-        self.use_git = os.path.exists('.git')
         self.ExpID = args.ExpID if hasattr(args, 'ExpID') and args.ExpID else self.get_ExpID()
         self.Exps_Dir = 'Experiments'
         if hasattr(self.args, 'Exps_Dir'):
@@ -222,28 +219,25 @@ class Logger(object):
             self.logtxt, self.ExpID, self.args.debug or self.args.screen_print)  # for all txt logging
         self.log_tracker = LogTracker()  # for all numerical logging
 
-        # initial print: save args
+        # initial print
         self.print_script()
-        self.print_nvidia_smi()
-        if self.use_git:
-            self.print_git_status()
         self.print_note()
-        if (not args.debug) and self.SERVER != '':
-            # If self.SERVER != '', it shows this is Huan's computer, then call this func, which is just a small feature to my need.
-            # When others use this code, they probably need NOT call this func.
-            # self.__send_to_exp_hub() # this function is not very useful. deprecated.
-            pass
         args.CodeID = self.get_CodeID()
         self.log_printer.print_args(args)
-        self.save_args(args)
-        self.cache_model()
+
+        self.save_args(args) # to .yaml
+        self.cache_model() # backup code
+        self.print_nvidia_smi() # print GPU info
+        if self.use_git:
+            self.print_git_status()
         self.n_log_item = 0
 
     def get_CodeID(self):
         if hasattr(self.args, 'CodeID') and self.args.CodeID:
             return self.args.CodeID
         else:
-            if self.use_git:
+            try:
+                # check if code is committed
                 f = '.git_status_%s.tmp' % time.time()
                 script = 'git status >> %s' % f
                 os.system(script)
@@ -254,15 +248,20 @@ class Logger(object):
                     self.log_printer("Warning! Your code is not commited. Cannot be too careful.")
                     time.sleep(3)
 
-                f = '.CodeID_file_%s.tmp' % time.time()
-                script = "git log --pretty=oneline >> %s" % f
-                os.system(script)
-                x = open(f).readline()
-                os.remove(f)
-                return x[:8]
-            else:
+                # # old implementation to get CodeID, pretty dumb, deprecated
+                # f = '.CodeID_file_%s.tmp' % time.time()
+                # script = "git log --pretty=oneline >> %s" % f
+                # os.system(script)
+                # x = open(f).readline()
+                # os.remove(f)
+                # CodeID = x[:8]
+                CodeID = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+                self.use_git = True
+            except:
+                CodeID = 'GitNotFound'
+                self.use_git = False
                 self.log_printer("Warning! Git not found under this project. Highly recommended to use Git to manage code.")
-                return 'GitNotFound'
+            return CodeID
 
     def get_ExpID(self):
         self.SERVER = os.environ["SERVER"] if 'SERVER' in os.environ.keys() else ''
@@ -374,29 +373,7 @@ class Logger(object):
         file_path = os.path.abspath(__file__)
         return file_path.split('/')[-2]
     
-    def __send_to_exp_hub(self):
-        '''For every experiment, it will send <ExpNote> to a hub for the convenience of checking.
-        '''
-        today_exp = time.strftime("%Y%m%d") + "_exps.txt"
-        if self.SERVER in CONFIDENTIAL_SERVERS:
-            today_remote = 'huwang@137.203.141.202:/homes/huwang/Projects/ExpLogs/%s' % today_exp
-        else:
-            today_remote = 'wanghuan@155.33.198.138:/home/wanghuan/Projects/ExpLogs/%s' % today_exp
-        local_f = 'wh_exps_%s.tmp' % time.time()
-        try:
-            script_pull = 'scp %s %s' % (today_remote, local_f)
-            os.system(script_pull)
-        except:
-            pass
-        with open(local_f, 'a+') as f:
-            f.write(self.ExpNote + '\n')
-        script_push = 'scp %s %s' % (local_f, today_remote)
-        os.system(script_push)
-        os.remove(local_f)
-    
     def save_args(self, args):
-        # with open(pjoin(self.log_path, 'params.json'), 'w') as f:
-        #     json.dump(args.__dict__, f, indent=4)
         with open(pjoin(self.log_path, 'params.yaml'), 'w') as f:
             yaml.dump(args.__dict__, f, indent=4)
     
