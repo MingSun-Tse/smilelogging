@@ -2,75 +2,65 @@
 Python logging package for easy reproducible experimenting in research.
 
 
-## Why you may need this package
+## Why this package may help you
 This project is meant to provide an easy-to-use (as easy as possible) package to enable *reproducible* experimenting in research. Here is a struggling situation you may also encountered:
-> I am doing some project. I got a fatanstic idea some time (one week, one month, or even one year) ago. Now I am looking at the results of that experiment, but I just cannot reproduce them anymore. I cannot remember which script and what hyper-prarameters I used. Even worse, since then I've modified the code (a lot). I don't know where I messed it up...
+> I am doing some project. I got a fatanstic idea some time (one week, one month, or even one year) ago. Now I am looking at the results of that experiment, but I just cannot reproduce them anymore. I cannot remember which script and what hyper-prarameters I used. Even worse, since then I've modified the code (a lot). I don't know where I messed it up...:cold_sweat:
 
-If you do not use this package, usually, what you can do may be:
+Usually, what you can do may be:
 - First, use Github to manage your code. Always run experiments after `git commit`. 
 - Second, before each experiment, set up a *unique* experiment folder (with a unique ID to label that experiment -- we call it `ExpID`). 
 - Third, when running an experiment, print your git commit ID (we call it `CodeID`) and `arguments` in the log.
 
 Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the `ExpID`, we should be able to rerun the experiment under the same condition.
 
-These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying. This package is meant to **save you with basically 3~4 lines of code change**.
+These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying. **This package is meant to save you with basically 3~4 lines of code change**.
 
 
 ## Usage
 
 **Step 0: Install the package (>= python3.4)**
-```
-# --upgrade to make sure you install the latest version
-pip install smilelogging --upgrade
+```python
+pip install smilelogging
+
+# next we will use PyTorch code as an example, so please also install pytorch and torchvision
+pip install torch torchvision
 ```
 
 **Step 1: Modify your code**
 
-Here we use the official [PyTorch ImageNet example](https://github.com/pytorch/examples/blob/master/imagenet/main.py) to give an example.
+Here we use the [PyTorch MNIST example](https://github.com/pytorch/examples/tree/master/mnist) to give a step-by-step example. In total, you only need to **add 3 lines of code and replace 1 line**.
 
-```
-# 1. add this at the head of code
-from smilelogging import Logger 
+```python
+from torchvision import datasets, transforms
+from torch.optim.lr_scheduler import StepLR
+from smilelogging import Logger # @mst: add this line
 
-# 2. replace argument parser
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')  
-==> change the above line to the following:
-from smilelogging import argparser as parser
+# parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+from smilelogging import argparser as parser # @mst: replace above with this line
 
-# 3. add logger and change print if necessary
-args = parser.parse_args()
-==> change the above line to the following 3:
-args = parser.parse_args()
+args = parser.parse_args() # @mst: add the following 2 lines
 logger = Logger(args)
-global print; print = logger.log_printer.logprint # change print function so that logs can be printed to a txt file
+global print; print = logger.log_printer.logprint
 ```
-> TIPS: overwriting the default python print func may not be a good practice, a better way may be `logprint = logger.log_printer.logprint`, and use it like `logprint('Test accuracy: %.4f' % test_acc)`. This will print the log to a txt file at path `log/log.txt`.
+
+We already put the modified code at `test_example/main.py`, so you do not need to edit any file now. Simply `cd test_example` and continue to next step.
 
 **Step 2: Run experiments**
 
-The original ImageNet training snippet is:
-```
-CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train and val folders]
+The original MNIST training snippet is:
+```s
+python main.py
 ```
 
 Now, try this:
+```s
+python main.py --project_name lenet_mnist --screen_print
 ```
-CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train and val folders] --project_name Scratch__resnet18__imagenet --screen_print
+> This snippet will set up an experiment folder under path `Experiments/lenet_mnist_XXX`. That `XXX` thing is an `ExpID` automatically assigned by the time running this snippet. Below is an example on my PC:
 ```
-> This snippet will set up an experiment folder under path `Experiments/Scratch__resnet18__imagenet_XXX`. That `XXX` thing is an `ExpID` automatically assigned by the time running this snippet. Below is an example on my PC:
+
 ```
-Experiments/
-└── Scratch__resnet18__imagenet_SERVER138-20211021-145936
-    ├── gen_img
-    ├── log
-    │   ├── git_status.txt
-    │   ├── gpu_info.txt
-    │   ├── log.txt
-    │   ├── params.yaml
-    │   └── plot
-    └── weights
-```
-<h4 align="center">:sparkles:Congrats:exclamation:You're all set:exclamation:</h4>
+<h4 align="center">:sparkles:Congrats:beers:You're all set:exclamation:</h4>
 
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` and in the head of `log/log.txt`. Below is an example of the first few lines of `log/log.txt`:
@@ -91,28 +81,27 @@ Note, it tells us
 - (6) At the begining of each log line, the prefix "[180853 22509 2021/10/21-18:08:54]" is automatically added if the `logprint` func is used for print, where `180853` is short for the full ExpID `SERVER138-20211021-180853`, `22509` is the program pid (useful if you want to kill the job, e.g., `kill -9 22509`)
 
 
-**More explanantions about the folder setting**
+**More explanantions about the folder setting:**
 
 The `weights` folder is supposed to store the checkpoints during training; and `gen_img` is supposed to store the generated images during training (like in a generative model project). To use them in the code:
-```
+```python
 weights_path = logger.weights_path
 gen_img_path = logger.gen_img_path
 ```
 
 
-**More explanantions about the arguments and more tips**
+**More explanantions about the arguments and tips:**
 - `--screen_print` means the logs will also be print to the console (namely, your screen). If it is not used, the log will only be saved to `log/log.txt`, not printed to screen. 
 - If you are debugging code, you may not want to create an experiment folder under `Experiments`. Then use `--debug`, for example:
 ```
 CUDA_VISIBLE_DEVICES=0 python main.py -a resnet18 [imagenet-folder with train and val folders] --debug
 ```
 This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experiments` is expected to store the *formal* experiment results).
-
+- In the above, we use `print = logger.log_printer.logprint`. Overwriting the default python print func may not be a good practice, a better way may be `logprint = logger.log_printer.logprint`, and use it like `logprint('Test accuracy: %.4f' % test_acc)`. This will print the log to a txt file at path `log/log.txt`.
 
 
 ## TODO
-- Add training and testing metric (like accuracy, PSNR) plots.
-
+- [ ] Add training and testing metric (like accuracy, PSNR) plots.
 
 
 ## Collaboration / Suggestions
