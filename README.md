@@ -34,12 +34,12 @@ from smilelogging import Logger
 
 # 2. replace argument parser
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')  
-==> 
+==> change the above line to the following:
 from smilelogging import argparser as parser
 
 # 3. add logger and change print if necessary
 args = parser.parse_args()
-==> 
+==> change the above line to the following 3:
 args = parser.parse_args()
 logger = Logger(args)
 global print; print = logger.log_printer.logprint # change print function so that logs can be printed to a txt file
