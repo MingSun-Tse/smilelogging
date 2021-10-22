@@ -1,5 +1,5 @@
 # smilelogging
-Python logging package for easy reproducible experimenting in research. Happily developed by the members of [SMILE Lab](https://web.northeastern.edu/smilelab/).
+Python logging package for easy reproducible experimenting in research. Developed by the members of [SMILE Lab](https://web.northeastern.edu/smilelab/).
 
 
 ## Why this package may help you
@@ -13,7 +13,7 @@ Usually, what you can do may be:
 
 Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the `ExpID`, we should be able to rerun the experiment under the same condition.
 
-These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying:anger:. **This package is meant to save you with basically 3~4 lines of code change**:yum:.
+These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying. **This package is meant to save you with basically 3~4 lines of code change**.
 
 
 ## Usage
@@ -22,7 +22,7 @@ These steps are pretty simple, but if you implement them over and over again in 
 ```python
 pip install smilelogging
 
-# next we will use PyTorch code as an example, so please also install pytorch and torchvision
+# next we will use PyTorch code as an example, so please also install pytorch here
 pip install torch torchvision
 ```
 
@@ -56,29 +56,38 @@ Now, try this:
 ```s
 python main.py --project_name lenet_mnist --screen_print
 ```
-> This snippet will set up an experiment folder under path `Experiments/lenet_mnist_XXX`. That `XXX` thing is an `ExpID` automatically assigned by the time running this snippet. Below is an example on my PC:
+> This snippet will set up an experiment folder at path `Experiments/lenet_mnist_XXX`. That `XXX` thing is an `ExpID` automatically assigned by the time running this snippet. Below is an example on my PC:
 ```
-
+Experiments/
+└── lenet_mnist_SERVER138-20211022-184126
+    ├── gen_img
+    ├── log
+    │   ├── git_status.txt
+    │   ├── gpu_info.txt
+    │   ├── log.txt
+    │   ├── params.yaml
+    │   └── plot
+    └── weights
 ```
 <h4 align="center">:sparkles:Congrats:beers:You're all set:exclamation:</h4>
 
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` and in the head of `log/log.txt`. Below is an example of the first few lines of `log/log.txt`:
 ``` 
-cd /home/wanghuan/Projects/TestProject
-CUDA_VISIBLE_DEVICES=1 python main.py -a resnet18 /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/ --project Scracth_resnet18_imagenet --screen_print
+cd /home/wanghuan/Projects/smilelogging/test_example
+python main.py --project_name lenet_mnist --screen_print
 
-('arch': resnet18) ('batch_size': 256) ('cache_ignore': ) ('CodeID': f30e6078) ('data': /home/wanghuan/Dataset/ILSVRC/Data/CLS-LOC/) ('debug': False) ('dist_backend': nccl) ('dist_url': tcp://224.66.41.62:23456) ('epochs': 90) ('evaluate': False) ('gpu': None) ('lr': 0.1) ('momentum': 0.9) ('multiprocessing_distributed': False) ('note': ) ('pretrained': False) ('print_freq': 10) ('project_name': Scracth_resnet18_imagenet) ('rank': -1) ('resume': ) ('screen_print': True) ('seed': None) ('start_epoch': 0) ('weight_decay': 0.0001) ('workers': 4) ('world_size': -1)
+('batch_size': 64) ('cache_ignore': ) ('CodeID': 023534a) ('debug': False) ('dry_run': False) ('epochs': 14) ('gamma': 0.7) ('log_interval': 10) ('lr': 1.0) ('no_cuda': False) ('note': ) ('project_name': lenet_mnist) ('save_model': False) ('screen_print': True) ('seed': 1) ('test_batch_size': 1000)
 
-[180853 22509 2021/10/21-18:08:54] ==> Caching various config files to 'Experiments/Scracth_resnet18_imagenet_SERVER138-20211021-180853/.caches'
+[184126 6424 2021/10/22-18:41:29] ==> Caching various config files to 'Experiments/lenet_mnist_SERVER138-20211022-184126/.caches'
 ```
 Note, it tells us 
 - (1) where is the code
 - (2) what snippet is used when running this experiment
 - (3) what arguments are used
 - (4) what is the CodeID -- useful when rolling back to prior code versions (`git reset --hard <CodeID>`)
-- (5) where the code files (*.py, *.json, *.yaml etc) are backuped -- note the log line "==> Caching various config files to ...". Ideally, CodeID is already enough to get previous code. Caching code files is a double insurance
-- (6) At the begining of each log line, the prefix "[180853 22509 2021/10/21-18:08:54]" is automatically added if the `logprint` func is used for print, where `180853` is short for the full ExpID `SERVER138-20211021-180853`, `22509` is the program pid (useful if you want to kill the job, e.g., `kill -9 22509`)
+- (5) where the code files (*.py, *.json, *.yaml etc) are backuped -- note the log line `==> Caching various config files to ...`. Ideally, CodeID is already enough to get previous code. Caching code files is a double insurance
+- (6) At the begining of each log line, the prefix `[184126 6424 2021/10/22-18:41:29]` is automatically added if the `logprint` func is used for print, where `184126` is short for the full ExpID `SERVER138-20211022-184126`, `6424` is the program pid (useful if you want to kill the job, e.g., `kill -9 6424`)
 
 
 **More explanantions about the folder setting:**
