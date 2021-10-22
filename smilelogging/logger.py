@@ -1,13 +1,10 @@
 import time, math, os, sys, copy, numpy as np, shutil as sh
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from utils import get_project_path, mkdirs
+from .utils import get_project_path, mkdirs
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from collections import OrderedDict
 import json, yaml
-import logging
-import traceback
 pjoin = os.path.join
 
 # globals
