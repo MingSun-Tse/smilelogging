@@ -1,0 +1,16 @@
+CodeID: GitNotFound
+batch_size: 64
+cache_ignore: ''
+debug: false
+dry_run: false
+epochs: 14
+gamma: 0.7
+log_interval: 10
+lr: 1.0
+no_cuda: false
+note: ''
+project_name: lenet_mnist
+save_model: false
+screen_print: true
+seed: 1
+test_batch_size: 1000
