@@ -8,6 +8,7 @@ import builtins
 import subprocess
 import yaml
 pjoin = os.path.join
+pyprint = builtins.print
 
 class DoubleWriter():
     def __init__(self, f1, f2, ExpID):
@@ -224,9 +225,11 @@ class Logger(object):
         self.cache_model() # backup code
         self.n_log_item = 0
 
-        # globally change stdout and stderr: print to stdout or stderr, meanwhile, also print to logtxt
-        builtins.print = lambda *args, **kwargs: self.print(*args, **kwargs)
+        # globally change stderr: print to stderr, meanwhile, also print to logtxt
         sys.stderr = DoubleWriter(sys.stderr, self.logtxt, self.ExpID)
+        sys.stdout = DoubleWriter(sys.stdout, self.logtxt, self.ExpID)
+        _print = print
+        builtins.print = lambda *args, **kwargs: _print(f"[{self.ExpID[-6:]} {os.getpid()} {time.strftime('%Y/%m/%d-%H:%M:%S')}]", *args, **kwargs)
 
     def get_CodeID(self):
         if hasattr(self.args, 'CodeID') and self.args.CodeID:
