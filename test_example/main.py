@@ -6,7 +6,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
-from smilelogging import Logger # @mst: add this line
+import sys; sys.path.insert(0, '/home/wanghuan/Projects/smilelogging/')
+from smilelogging import Logger as SmileLogger # ==> add this line
 
 
 class Net(nn.Module):
@@ -73,8 +74,8 @@ def test(model, device, test_loader):
 
 def main():
     # Training settings
-    # parser = argparse.ArgumentParser(description='PyTorch MNIST Example') # @mst: replaced with the following
-    from smilelogging import argparser as parser
+    # parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+    from smilelogging import argparser as parser # ==> replace above with this line
 
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
@@ -96,9 +97,8 @@ def main():
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
-    args = parser.parse_args() # @mst: add the following 2 lines
-    logger = Logger(args)
-    global print; print = logger.log_printer.logprint
+    args = parser.parse_args()
+    slogger = SmileLogger(args) # ==> add this line
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
