@@ -11,7 +11,7 @@ Usually, what you can do may be:
 - Second, before each experiment, set up a *unique* experiment folder (with a unique ID to label that experiment -- we call it `ExpID`). 
 - Third, when running an experiment, print your git commit ID (we call it `CodeID`) and `arguments` in the log.
 
-Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID` and `arguments` are saved. So ideally, as long as we know the `ExpID`, we should be able to rerun the experiment under the same condition.
+Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID`, `arguments`, and others (logs, checkpoints, etc.) are saved. So ideally, as long as we know the `ExpID`, we should be able to rerun the experiment under the same condition.
 
 These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying. **This package is meant to save you with basically 3~4 lines of code change**.
 
@@ -22,8 +22,12 @@ These steps are pretty simple, but if you implement them over and over again in 
 ```python
 pip install smilelogging
 
-# next we will use PyTorch code as an example, so please also install pytorch here
+# next we will use PyTorch code as an example, so please also install PyTorch here
 pip install torch torchvision
+
+# clone this repo to continue
+git clone https://github.com/MingSun-Tse/smilelogging.git
+cd smilelogging
 ```
 
 **Step 1: Modify your code**
