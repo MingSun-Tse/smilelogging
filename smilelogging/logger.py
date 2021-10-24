@@ -285,7 +285,7 @@ class Logger(object):
     def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False):
         '''Supposed to replace the standard print func. Print to console and logtxt file'''
         prefix = '' if unprefix else "[%s %s %s] " % (self.ExpID[-6:], os.getpid(), time.strftime("%Y/%m/%d-%H:%M:%S"))
-        strtmp = prefix + sep.join(value)
+        strtmp = prefix + sep.join([str(v) for v in value])
         if file is None:
             print(strtmp, end=end, file=self.logtxt, flush=True) # always flush
             print(strtmp, end=end, file=sys.stdout, flush=True)
