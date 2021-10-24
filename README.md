@@ -51,12 +51,12 @@ We already put the modified code at `test_example/main.py`, so you do not need t
 **Step 2: Run experiments**
 
 The original MNIST training snippet is:
-```s
+```console
 python main.py
 ```
 
 Now, try this:
-```s
+```console
 python main.py --project_name lenet_mnist
 ```
 > This snippet will set up an experiment folder at path `Experiments/lenet_mnist_XXX`. That `XXX` thing is an `ExpID` automatically assigned by the time running this snippet. Below is an example on my PC:
@@ -76,7 +76,7 @@ Experiments/
 
 
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` and in the head of `log/log.txt`. Below is an example of the first few lines of `log/log.txt`:
-``` 
+```console
 cd /home/wanghuan/Projects/smilelogging/test_example
 python main.py --project_name lenet_mnist
 
@@ -90,7 +90,7 @@ Note, it tells us
 - (3) what arguments are used
 - (4) what is the CodeID -- useful when rolling back to prior code versions (`git reset --hard <CodeID>`)
 - (5) where the code files (*.py, *.json, *.yaml etc) are backuped -- note the log line `==> Caching various config files to ...`. Ideally, CodeID is already enough to get previous code. Caching code files is a double insurance
-- (6) At the begining of each log line, the prefix `[184126 6424 2021/10/22-18:41:29]` is automatically added if the `logprint` func is used for print, where `184126` is short for the full ExpID `SERVER138-20211022-184126`, `6424` is the program pid (useful if you want to kill the job, e.g., `kill -9 6424`)
+- (6) At the begining of each log line, the prefix `[184126 6424 2021/10/22-18:41:29]` is automatically added if the `logger.print` func is used for print, where `184126` is short for the full ExpID `SERVER138-20211022-184126`, `6424` is the program pid (useful if you want to kill the job, e.g., `kill -9 6424`)
 
 
 **More explanantions about the folder setting:**
@@ -104,11 +104,11 @@ gen_img_path = logger.gen_img_path
 
 **More explanantions about the arguments and tips:**
 - If you are debugging code, you may not want to create an experiment folder under `Experiments`. Then use `--debug`, for example:
-```
+```console
 python main.py --debug
 ```
 This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experiments` is expected to store the *formal* experiment results).
-- In the above, we use `print = logger.log_printer.logprint`. Overwriting the default python print func may not be a good practice, a better way may be `logprint = logger.log_printer.logprint`, and use it like `logprint('Test accuracy: %.4f' % test_acc)`. This will print the log to a txt file at path `log/log.txt`.
+- In the above, we use `global print; print = logger.print`. Overwriting the default python print func may not be a good practice, a better way may be `logprint = logger.print`, and use it like `logprint('Test accuracy: %.4f' % test_acc)`. This will print the log to a txt file at path `log/log.txt`.
 
 
 ## TODO
