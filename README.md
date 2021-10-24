@@ -35,16 +35,15 @@ cd smilelogging
 Here we use the [PyTorch MNIST example](https://github.com/pytorch/examples/tree/master/mnist) to give a step-by-step example. In total, you only need to **add 3 lines of code and replace 1 line**.
 
 ```python
-from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
-from smilelogging import Logger # @mst: add this line
+from smilelogging import Logger # ==> add this line
 
 # parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-from smilelogging import argparser as parser # @mst: replace above with this line
+from smilelogging import argparser as parser # ==> replace above with this line
 
-args = parser.parse_args() # @mst: add the following 2 lines
-logger = Logger(args)
-global print; print = logger.log_printer.logprint
+args = parser.parse_args()
+logger = Logger(args) # ==> add this line
+global print; print = logger.print # ==> add this line
 ```
 
 We already put the modified code at `test_example/main.py`, so you do not need to edit any file now. Simply `cd test_example` and continue to next step.
@@ -58,7 +57,7 @@ python main.py
 
 Now, try this:
 ```s
-python main.py --project_name lenet_mnist --screen_print
+python main.py --project_name lenet_mnist
 ```
 > This snippet will set up an experiment folder at path `Experiments/lenet_mnist_XXX`. That `XXX` thing is an `ExpID` automatically assigned by the time running this snippet. Below is an example on my PC:
 ```
@@ -79,9 +78,9 @@ Experiments/
 As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` and in the head of `log/log.txt`. Below is an example of the first few lines of `log/log.txt`:
 ``` 
 cd /home/wanghuan/Projects/smilelogging/test_example
-python main.py --project_name lenet_mnist --screen_print
+python main.py --project_name lenet_mnist
 
-('batch_size': 64) ('cache_ignore': ) ('CodeID': 023534a) ('debug': False) ('dry_run': False) ('epochs': 14) ('gamma': 0.7) ('log_interval': 10) ('lr': 1.0) ('no_cuda': False) ('note': ) ('project_name': lenet_mnist) ('save_model': False) ('screen_print': True) ('seed': 1) ('test_batch_size': 1000)
+('batch_size': 64) ('cache_ignore': ) ('CodeID': 023534a) ('debug': False) ('dry_run': False) ('epochs': 14) ('gamma': 0.7) ('log_interval': 10) ('lr': 1.0) ('no_cuda': False) ('note': ) ('project_name': lenet_mnist) ('save_model': False) ('seed': 1) ('test_batch_size': 1000)
 
 [184126 6424 2021/10/22-18:41:29] ==> Caching various config files to 'Experiments/lenet_mnist_SERVER138-20211022-184126/.caches'
 ```
@@ -104,7 +103,6 @@ gen_img_path = logger.gen_img_path
 
 
 **More explanantions about the arguments and tips:**
-- `--screen_print` means the logs will also be print to the console (namely, your screen). If it is not used, the log will only be saved to `log/log.txt`, not printed to screen. 
 - If you are debugging code, you may not want to create an experiment folder under `Experiments`. Then use `--debug`, for example:
 ```
 python main.py --debug

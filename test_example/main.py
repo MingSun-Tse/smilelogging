@@ -1,4 +1,5 @@
 from __future__ import print_function
+# import sys, os; sys.path.insert(0, os.path.split(os.path.split(os.path.abspath(__file__))[0])[0])
 import argparse
 import torch
 import torch.nn as nn
@@ -6,8 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
-import sys; sys.path.insert(0, '/home/wanghuan/Projects/smilelogging/')
-from smilelogging import Logger as SmileLogger # ==> add this line
+from smilelogging import Logger # ==> add this line
 
 
 class Net(nn.Module):
@@ -98,7 +98,8 @@ def main():
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
     args = parser.parse_args()
-    slogger = SmileLogger(args) # ==> add this line
+    logger = Logger(args) # ==> add this line
+    global print; print = logger.print # ==> add this line
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 

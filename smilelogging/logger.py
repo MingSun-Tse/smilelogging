@@ -4,16 +4,13 @@ import matplotlib.pyplot as plt
 from .utils import get_project_path, mkdirs
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from collections import OrderedDict
-import builtins
 import subprocess
 import yaml
 pjoin = os.path.join
-pyprint = builtins.print
 
 class DoubleWriter():
-    def __init__(self, f1, f2, ExpID):
+    def __init__(self, f1, f2):
         self.f1, self.f2 = f1, f2
-        self.ExpID = ExpID
     def write(self, msg):
         self.f1.write(msg)
         self.f2.write(msg)
@@ -203,9 +200,9 @@ class Logger(object):
 
         # set up a unique experiment folder
         self.ExpID = args.ExpID if hasattr(args, 'ExpID') and args.ExpID else self.get_ExpID()
-        self.Exps_Dir = 'Experiments'
-        if hasattr(args, 'Exps_Dir'):
-            self.Exps_Dir = args.Exps_Dir
+        self.experiments_dir = 'Experiments'
+        if hasattr(args, 'experiments_dir') and args.experiments_dir:
+            self.experiments_dir = args.experiments_dir
         self.set_up_dir()
 
         # set up log_printer and log_tracker
@@ -226,10 +223,7 @@ class Logger(object):
         self.n_log_item = 0
 
         # globally change stderr: print to stderr, meanwhile, also print to logtxt
-        sys.stderr = DoubleWriter(sys.stderr, self.logtxt, self.ExpID)
-        sys.stdout = DoubleWriter(sys.stdout, self.logtxt, self.ExpID)
-        _print = print
-        builtins.print = lambda *args, **kwargs: _print(f"[{self.ExpID[-6:]} {os.getpid()} {time.strftime('%Y/%m/%d-%H:%M:%S')}]", *args, **kwargs)
+        sys.stderr = DoubleWriter(sys.stderr, self.logtxt)
 
     def get_CodeID(self):
         if hasattr(self.args, 'CodeID') and self.args.CodeID:
@@ -245,7 +239,7 @@ class Logger(object):
                 os.remove(f)
                 if "Changes not staged for commit" in x:
                     logtmp = "Warning! Your code is not committed. Cannot be too careful."
-                    self.print(logtmp, flush=True)
+                    self.print(logtmp)
                     time.sleep(3)
 
                 # # old implementation to get CodeID, pretty dumb, deprecated
@@ -261,7 +255,7 @@ class Logger(object):
                 CodeID = 'GitNotFound'
                 self.use_git = False
                 logtmp = "Warning! Git not found under this project. Highly recommended to use Git to manage code."
-                self.print(logtmp, flush=True)
+                self.print(logtmp)
             return CodeID
 
     def get_ExpID(self):
@@ -271,7 +265,7 @@ class Logger(object):
         return ExpID
 
     def set_up_dir(self):
-        project_path = pjoin("%s/%s_%s" % (self.Exps_Dir, self.args.project_name, self.ExpID))
+        project_path = pjoin("%s/%s_%s" % (self.experiments_dir, self.args.project_name, self.ExpID))
         if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
             project_path = get_project_path(self.args.resume_ExpID)
         if self.args.debug: # debug has the highest priority. If debug, all the things will be saved in Debug_dir
@@ -288,16 +282,19 @@ class Logger(object):
         self.logtxt = open(self.logtxt_path, "a+")
         self.script_hist = open('.script_history', 'a+') # save local script history, for convenience of check
 
-    def print(self, *msg, flush=False, file=None, unprefix=False):
+    def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False):
         '''Supposed to replace the standard print func. Print to console and logtxt file'''
-        current_time = time.strftime("%Y/%m/%d-%H:%M:%S")
-        prefix = '' if unprefix else "[%s %s %s] " % (self.ExpID[-6:], os.getpid(), current_time)
-        for m in msg:
-            if file is None:
-                print(prefix + m, file=self.logtxt, flush=flush)
-                print(prefix + m, file=sys.stdout, flush=flush)
-            else:
-                print(prefix + m, file=file, flush=flush)
+        prefix = '' if unprefix else "[%s %s %s] " % (self.ExpID[-6:], os.getpid(), time.strftime("%Y/%m/%d-%H:%M:%S"))
+        strtmp = prefix + sep.join(value)
+        if file is None:
+            print(strtmp, end=end, file=self.logtxt, flush=True) # always flush
+            print(strtmp, end=end, file=sys.stdout, flush=True)
+        else:
+            print(strtmp, end=end, file=file, flush=True)
+
+    def accprint(self, *value, **kwargs):
+        blank = '  ' * int(self.ExpID[-1])
+        self.print(blank, *value, **kwargs)
 
     def print_script(self):
         script = 'cd %s\n' % os.path.abspath(os.getcwd())
@@ -307,13 +304,13 @@ class Logger(object):
         else:
             script += ' '.join(['python', *sys.argv])
         script += '\n'
-        self.print(script, flush=True, unprefix=True)
-        self.print(script, flush=True, file=self.script_hist, unprefix=True)
+        self.print(script, unprefix=True)
+        self.print(script, file=self.script_hist, unprefix=True)
 
     def print_note(self):
         if hasattr(self.args, 'note') and self.args.note:
             self.ExpNote = f'ExpNote: {self.args.note}'
-            self.print(self.ExpNote, flush=True, unprefix=True)
+            self.print(self.ExpNote, unprefix=True)
 
     def print_args(self):
         '''Example: ('batch_size', 16) ('CodeID', 12defsd2) ('decoder', models/small16x_ae_base/d5_base.pth)
@@ -332,7 +329,7 @@ class Logger(object):
         for k_ in sorted(key_map.keys()):
             real_key = key_map[k_]
             logtmp += "('%s': %s) " % (real_key, self.args.__dict__[real_key])
-        self.print(logtmp + '\n', flush=True, unprefix=True)
+        self.print(logtmp + '\n', unprefix=True)
 
     def save_nvidia_smi(self):
         out = pjoin(self.log_path, 'gpu_info.txt')
@@ -366,7 +363,7 @@ class Logger(object):
         if not os.path.exists(self.cache_path):
             os.makedirs(self.cache_path)
         logtmp = f"==> Caching various config files to '{self.cache_path}'"
-        self.print(logtmp, flush=True)
+        self.print(logtmp)
         
         extensions = ['.py', '.json', '.yaml', '.sh', '.txt', '.md'] # files of these types will be cached
         def copy_folder(folder_path):
@@ -391,7 +388,7 @@ class Logger(object):
             ignore += self.args.cache_ignore.split(',')
         [copy_folder(d) for d in os.listdir('.') if os.path.isdir(d) and d not in ignore]
         logtmp = f'==> Caching done (time: {time.time() - t0:.2f}s)'
-        self.print(logtmp, flush=True)
+        self.print(logtmp)
 
     def get_project_name(self):
         ''' For example, 'Projects/FasterRCNN/logger.py', then return 'FasterRCNN' '''
