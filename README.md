@@ -19,7 +19,7 @@ These steps are pretty simple, but if you implement them over and over again in 
 ## Usage
 
 **Step 0: Install the package (>= python3.4)**
-```python
+```console
 pip install smilelogging
 
 # next we will use PyTorch code as an example, so please also install PyTorch here
