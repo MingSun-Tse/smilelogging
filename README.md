@@ -1,4 +1,6 @@
 # smilelogging
+[![PyPI version](https://badge.fury.io/py/smilelogging.svg)](https://badge.fury.io/py/smilelogging)
+
 Python logging package for easy reproducible experimenting in research. Developed by the members of [SMILE Lab](https://web.northeastern.edu/smilelab/).
 
 
