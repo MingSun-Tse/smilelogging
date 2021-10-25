@@ -15,7 +15,7 @@ Usually, what you can do may be:
 
 Every result is uniquely binded with an `ExpID`, corresponding to a unique experiment folder. In that folder, `CodeID`, `arguments`, and others (logs, checkpoints, etc.) are saved. So ideally, as long as we know the `ExpID`, we should be able to rerun the experiment under the same condition.
 
-These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying. **This package is meant to save you with basically 3~4 lines of code change**.
+These steps are pretty simple, but if you implement them over and over again in each project, it can still be quite annoying. **This package is meant to save you with basically 2~3 lines of code change**.
 
 
 ## Usage
@@ -34,7 +34,7 @@ cd smilelogging
 
 **Step 1: Modify your code**
 
-Here we use the [PyTorch MNIST example](https://github.com/pytorch/examples/tree/master/mnist) to give a step-by-step example. In total, you only need to **add 3 lines of code and replace 1 line**.
+Here we use the [PyTorch MNIST example](https://github.com/pytorch/examples/tree/master/mnist) to give a step-by-step example. In total, you only need to **add 2 lines of code and replace 1 line**.
 
 ```python
 from torch.optim.lr_scheduler import StepLR
@@ -45,7 +45,6 @@ from smilelogging import argparser as parser # ==> replace above with this line
 
 args = parser.parse_args()
 logger = Logger(args) # ==> add this line
-global print; print = logger.print # ==> add this line
 ```
 
 We already put the modified code at `test_example/main.py`, so you do not need to edit any file now. Simply `cd test_example` and continue to next step.

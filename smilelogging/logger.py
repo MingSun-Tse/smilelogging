@@ -6,6 +6,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from collections import OrderedDict
 import subprocess
 import yaml
+import builtins
+from torchsummaryX import summary
 pjoin = os.path.join
 
 class DoubleWriter():
@@ -222,8 +224,10 @@ class Logger(object):
         self.cache_model() # backup code
         self.n_log_item = 0
 
-        # globally change stderr: print to stderr, meanwhile, also print to logtxt
+        # globally redirect stderr and stdout. Overwriting the builtins.print fn may not be the best way to do so.
+        # Suggestions are welcome to @mingsun-tse.
         sys.stderr = DoubleWriter(sys.stderr, self.logtxt)
+        builtins.print = self.print
 
     def get_CodeID(self):
         if hasattr(self.args, 'CodeID') and self.args.CodeID:
@@ -285,12 +289,12 @@ class Logger(object):
     def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False):
         '''Supposed to replace the standard print func. Print to console and logtxt file'''
         prefix = '' if unprefix else "[%s %s %s] " % (self.ExpID[-6:], os.getpid(), time.strftime("%Y/%m/%d-%H:%M:%S"))
-        strtmp = prefix + sep.join([str(v) for v in value])
+        strtmp = prefix + sep.join([str(v) for v in value]) + end
         if file is None:
-            print(strtmp, end=end, file=self.logtxt, flush=True) # always flush
-            print(strtmp, end=end, file=sys.stdout, flush=True)
+            self.logtxt.write(strtmp); self.logtxt.flush()
+            sys.stdout.write(strtmp); sys.stdout.flush()
         else:
-            print(strtmp, end=end, file=file, flush=True)
+            file.write(strtmp); file.flush()
 
     def accprint(self, *value, **kwargs):
         blank = '  ' * int(self.ExpID[-1])
@@ -340,6 +344,9 @@ class Logger(object):
         if self.use_git:
             script = 'git status >> %s' % pjoin(self.log_path, 'git_status.txt')
             os.system(script)
+    
+    def summary(self, *args, **kwargs):
+        summary(*args, **kwargs)
 
     def plot(self, name, out_path):
         self.log_tracker.plot(name, out_path)
