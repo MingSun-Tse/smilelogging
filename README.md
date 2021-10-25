@@ -109,7 +109,6 @@ gen_img_path = logger.gen_img_path
 python main.py --debug
 ```
 This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experiments` is expected to store the *formal* experiment results).
-- In the above, we use `global print; print = logger.print`. Overwriting the default python print func may not be a good practice, a better way may be `logprint = logger.print`, and use it like `logprint('Test accuracy: %.4f' % test_acc)`. This will print the log to a txt file at path `log/log.txt`.
 
 
 ## TODO

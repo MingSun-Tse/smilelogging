@@ -99,7 +99,6 @@ def main():
                         help='For Saving the current Model')
     args = parser.parse_args()
     logger = Logger(args) # ==> add this line
-    global print; print = logger.print # ==> add this line
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
