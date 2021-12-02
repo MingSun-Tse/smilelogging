@@ -24,7 +24,6 @@ class LogPrinter(object):
     def __init__(self, file, ExpID, print_to_screen=False):
         self.file = file
         self.ExpID = ExpID
-        self.print_to_screen = print_to_screen
 
     def __call__(self, *in_str):
         in_str = [str(x) for x in in_str]
@@ -34,29 +33,23 @@ class LogPrinter(object):
         current_time = time.strftime("%Y/%m/%d-%H:%M:%S")
         out_str = "[%s %s %s] %s" % (short_exp_id, pid, current_time, in_str)
         print(out_str, file=self.file, flush=True) # print to txt
-        if self.print_to_screen:
-            print(out_str) # print to screen
     
     def logprint(self, *in_str): # to keep the interface uniform
         self.__call__(*in_str)
 
     def accprint(self, *in_str):
         blank = '  ' * int(self.ExpID[-1])
-        self.__call__(blank, *in_str)
+        print(blank, *in_str)
     
     def netprint(self, *in_str): # i.e., print without any prefix
         '''Deprecated. Use netprint in Logger.'''
         for x in in_str:
             print(x, file=self.file, flush=True)
-            if self.print_to_screen:
-                print(x)
     
     def print(self, *in_str):
         '''print without any prefix'''
         for x in in_str:
             print(x, file=self.file, flush=True)
-            if self.print_to_screen:
-                print(x)
     
     def print_args(self, args):
         '''Example: ('batch_size', 16) ('CodeID', 12defsd2) ('decoder', models/small16x_ae_base/d5_base.pth)
