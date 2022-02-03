@@ -193,12 +193,23 @@ class Logger(object):
     def __init__(self, args):
         self.args = args
 
+        # logging folder names. Below are the default names, which can also be customized via 'args.hacksmile.config'
+        self._experiments_dir = 'Experiments'
+        self._debug_dir = 'Debug_Dir'
+        self._weights_dir = 'weights'
+        self._gen_img_dir = 'gen_img'
+        self._log_dir = 'log'
+        # customize logging folder names
+        if hasattr(args, 'hacksmile'):
+            if args.hacksmile.config:
+                for line in open(args.hacksmile.config):
+                    attr, value = [x.strip() for x in line.split(':')]
+                    self.__setattr__(attr, value)
+        
         # set up a unique experiment folder
         self.ExpID = args.ExpID if hasattr(args, 'ExpID') and args.ExpID else self.get_ExpID()
-        self.experiments_dir = 'Experiments'
-        if hasattr(args, 'experiments_dir') and args.experiments_dir:
-            self.experiments_dir = args.experiments_dir
         self.set_up_dir()
+        self.set_up_cache_ignore()
 
         # set up log_printer and log_tracker
         self.log_printer = LogPrinter(self.logtxt, self.ExpID, args.debug or args.screen_print) # for all txt logging
@@ -262,22 +273,35 @@ class Logger(object):
         return ExpID
 
     def set_up_dir(self):
-        project_path = pjoin("%s/%s_%s" % (self.experiments_dir, self.args.project_name, self.ExpID))
+        project_path = pjoin("%s/%s_%s" % (self._experiments_dir, self.args.project_name, self.ExpID))
         if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
             project_path = get_project_path(self.args.resume_ExpID)
         if self.args.debug: # debug has the highest priority. If debug, all the things will be saved in Debug_dir
-            project_path = "Debug_Dir"
+            project_path = self._debug_dir
 
+        # output interface
         self.exp_path     = project_path
-        self.weights_path = pjoin(project_path, "weights")
-        self.gen_img_path = pjoin(project_path, "gen_img")
-        self.cache_path   = pjoin(project_path, ".caches")
-        self.log_path     = pjoin(project_path, "log")
-        self.logplt_path  = pjoin(project_path, "log", "plot")
-        self.logtxt_path  = pjoin(project_path, "log", "log.txt")
-        mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self.cache_path)
+        self.weights_path = pjoin(project_path, self._weights_dir)
+        self.gen_img_path = pjoin(project_path, self._gen_img_dir)
+        self.log_path     = pjoin(project_path, self._log_dir)
+        self.logplt_path  = pjoin(self.log_path, "plot")
+        self.logtxt_path  = pjoin(self.log_path, "log.txt")
+        self.__cache_dir  = pjoin(project_path, ".caches")
+        mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self.__cache_dir)
         self.logtxt = open(self.logtxt_path, "a+")
         self.script_hist = open('.script_history', 'a+') # save local script history, for convenience of check
+
+    def set_up_cache_ignore(self):
+        if os.path.isfile('.cache_ignore'):
+            ignore = []
+            for line in open(self.args.cache_ignore):
+                ignore += line.strip().split(',')
+        else:
+            ignore = ['__pycache__', 'Experiments', 'Debug_Dir', '.git'] # these dirs will not be cached
+            if hasattr(self.args, 'cache_ignore'):
+                ignore += self.args.cache_ignore.split(',')
+                with open('.cache_ignore', 'w+') as f:
+                    f.write(','.join(ignore))
 
     def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False):
         '''Supposed to replace the standard print func. Print to console and logtxt file'''
@@ -360,9 +384,9 @@ class Logger(object):
         if self.args.debug: return
         
         t0 = time.time()
-        if not os.path.exists(self.cache_path):
-            os.makedirs(self.cache_path)
-        logtmp = f"==> Caching various config files to '{self.cache_path}'"
+        if not os.path.exists(self.__cache_dir):
+            os.makedirs(self.__cache_dir)
+        logtmp = f"==> Caching various config files to '{self.__cache_dir}'"
         self.print(logtmp)
         
         extensions = ['.py', '.json', '.yaml', '.sh', '.txt', '.md'] # files of these types will be cached
@@ -372,7 +396,7 @@ class Logger(object):
                 for f in files:
                     _, ext = os.path.splitext(f)
                     if ext in extensions:
-                        dir_path = pjoin(self.cache_path, root)
+                        dir_path = pjoin(self.__cache_dir, root)
                         f_path = pjoin(root, f)
                         if not os.path.exists(dir_path):
                             os.makedirs(dir_path)
@@ -380,13 +404,10 @@ class Logger(object):
                             sh.copy(f_path, dir_path)
         
         # copy files in current dir
-        [sh.copy(f, self.cache_path) for f in os.listdir('.') if os.path.isfile(f) and os.path.splitext(f)[1] in extensions]
+        [sh.copy(f, self.__cache_dir) for f in os.listdir('.') if os.path.isfile(f) and os.path.splitext(f)[1] in extensions]
 
         # copy dirs in current dir
-        ignore = ['__pycache__', 'Experiments', 'Debug_Dir', '.git']
-        if hasattr(self.args, 'cache_ignore'):
-            ignore += self.args.cache_ignore.split(',')
-        [copy_folder(d) for d in os.listdir('.') if os.path.isdir(d) and d not in ignore]
+        [copy_folder(d) for d in os.listdir('.') if os.path.isdir(d) and d not in self.cache_ignore]
         logtmp = f'==> Caching done (time: {time.time() - t0:.2f}s)'
         self.print(logtmp)
 

@@ -77,6 +77,12 @@ def main():
     # parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     from smilelogging import argparser as parser # ==> replace above with this line
 
+    # -- These are smilelogging test code, simply ignore them
+    parser.add_argument('--hacksmile.ON', action='store_true')
+    parser.add_argument('--hacksmile.config', type=str)
+    parser.add_argument('--config', type=str, is_config_file=True,
+                        help='path of the config file')
+    # --
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
@@ -98,6 +104,10 @@ def main():
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
     args = parser.parse_args()
+    # -- These are smilelogging test code, simply ignore them
+    from smilelogging.utils import update_args
+    args = update_args(args)
+    # --
     logger = Logger(args) # ==> add this line
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
