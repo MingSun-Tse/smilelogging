@@ -294,14 +294,15 @@ class Logger(object):
     def set_up_cache_ignore(self):
         if os.path.isfile('.cache_ignore'):
             ignore = []
-            for line in open(self.args.cache_ignore):
+            for line in open('.cache_ignore'):
                 ignore += line.strip().split(',')
         else:
             ignore = ['__pycache__', 'Experiments', 'Debug_Dir', '.git'] # these dirs will not be cached
-            if hasattr(self.args, 'cache_ignore'):
+            if hasattr(self.args, 'cache_ignore') and self.args.cache_ignore:
                 ignore += self.args.cache_ignore.split(',')
                 with open('.cache_ignore', 'w+') as f:
                     f.write(','.join(ignore))
+        self.cache_ignore = ignore
 
     def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False):
         '''Supposed to replace the standard print func. Print to console and logtxt file'''
