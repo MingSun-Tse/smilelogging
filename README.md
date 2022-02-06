@@ -94,7 +94,7 @@ Note, it tells us
 - (6) At the begining of each log line, the prefix `[184126 6424 2021/10/22-18:41:29]` is automatically added if the `logger.print` func is used for print, where `184126` is short for the full ExpID `SERVER138-20211022-184126`, `6424` is the program pid (useful if you want to kill the job, e.g., `kill -9 6424`)
 
 
-**More explanantions about the folder setting:**
+## More Explanantions about the Folder Settings
 
 The `weights` folder is supposed to store the checkpoints during training; and `gen_img` is supposed to store the generated images during training (like in a generative model project). To use them in the code:
 ```python
@@ -107,18 +107,19 @@ For more these path names, see [here](https://github.com/MingSun-Tse/smileloggin
 The folder names are pre-specified. If you do not like them and want to use your own folder setups, this code also provide such customization feature. Here is what you can do:
 
 - Step 1: create a config txt file, such as `smilelogging_config.txt`. An example is below:
-```
+```txt
 _experiments_dir: Other_Name_You_Like
 _weights_dir: Other_Name_You_Like
 _gen_img_dir: Other_Name_You_Like
 _log_dir: Other_Name_You_Like
 !reserve_dir: test/misc_results
 ```
-where the `!reserve_dir` line is to indicate that you want to create a folder at path `test1/misc_results` (under each experiment folder). The path of this folder will be assigned as an attribute of the `Logger` class, so you may use `logger.test__misc_results` (note `/` is replaced with `__`) to access it.
+where the `!reserve_dir` line is to indicate that you want to create a folder at path `test/misc_results` (under each experiment folder). The path of this folder will be assigned as an attribute of the `Logger` class, so you may use `logger.test__misc_results` (note `/` is replaced with `__`) to access it.
 
-- Step 2: when running experiments, append `--hacksmile.ON --hacksmile.config <path_to_config_in_Step_1>`
+- Step 2: when running experiments, append `--hacksmile.ON --hacksmile.config <path_to_config_in_Step_1>` to your script.
 
-**More explanantions about the arguments and tips:**
+## More Explanantions about the Arguments and TIPs
+
 - If you are debugging code, you may not want to create an experiment folder under `Experiments`. Then use `--debug`, for example:
 ```console
 python main.py --debug
