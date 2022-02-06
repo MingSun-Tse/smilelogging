@@ -1,0 +1,3 @@
+_experiments_dir: ../Experiments
+_debug_dir: Debug
+!reserve_dir: misc_results

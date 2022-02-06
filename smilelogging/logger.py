@@ -200,9 +200,12 @@ class Logger(object):
         self._gen_img_dir = 'gen_img'
         self._log_dir = 'log'
         # customize logging folder names
-        if hasattr(args, 'hacksmile'):
-            if args.hacksmile.config:
-                for line in open(args.hacksmile.config):
+        if hasattr(args, 'hacksmile') and args.hacksmile.config:
+            for line in open(args.hacksmile.config):
+                line = line.strip()
+                if line.startswith('!reserve_dir'):
+                    pass
+                else:
                     attr, value = [x.strip() for x in line.split(':')]
                     self.__setattr__(attr, value)
         
@@ -286,10 +289,21 @@ class Logger(object):
         self.log_path     = pjoin(project_path, self._log_dir)
         self.logplt_path  = pjoin(self.log_path, "plot")
         self.logtxt_path  = pjoin(self.log_path, "log.txt")
-        self.__cache_dir  = pjoin(project_path, ".caches")
-        mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self.__cache_dir)
+        self._cache_path  = pjoin(project_path, ".caches")
+        mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self._cache_path)         
         self.logtxt = open(self.logtxt_path, "a+")
         self.script_hist = open('.script_history', 'a+') # save local script history, for convenience of check
+
+        # user can customize the folders in experiment dir
+        if hasattr(self.args, 'hacksmile') and self.args.hacksmile.config:
+            for line in open(self.args.hacksmile.config):
+                line = line.strip()
+                if line.startswith('!reserve_dir'): # example: !reserve_dir: misc_results
+                    assert len(line.split(':')) == 2, f"There should be only one ':' in the line. Please check: f{line}"
+                    dir_name = line.split(':')[1].strip()
+                    dir_path = f'{self.exp_path}/{dir_name}'
+                    mkdirs(dir_path)
+                    self.__setattr__(dir_name.replace('/', '__'), dir_path)
 
     def set_up_cache_ignore(self):
         if os.path.isfile('.cache_ignore'):
@@ -385,9 +399,9 @@ class Logger(object):
         if self.args.debug: return
         
         t0 = time.time()
-        if not os.path.exists(self.__cache_dir):
-            os.makedirs(self.__cache_dir)
-        logtmp = f"==> Caching various config files to '{self.__cache_dir}'"
+        if not os.path.exists(self._cache_path):
+            os.makedirs(self._cache_path)
+        logtmp = f"==> Caching various config files to '{self._cache_path}'"
         self.print(logtmp)
         
         extensions = ['.py', '.json', '.yaml', '.sh', '.txt', '.md'] # files of these types will be cached
@@ -397,7 +411,7 @@ class Logger(object):
                 for f in files:
                     _, ext = os.path.splitext(f)
                     if ext in extensions:
-                        dir_path = pjoin(self.__cache_dir, root)
+                        dir_path = pjoin(self._cache_path, root)
                         f_path = pjoin(root, f)
                         if not os.path.exists(dir_path):
                             os.makedirs(dir_path)
@@ -405,7 +419,7 @@ class Logger(object):
                             sh.copy(f_path, dir_path)
         
         # copy files in current dir
-        [sh.copy(f, self.__cache_dir) for f in os.listdir('.') if os.path.isfile(f) and os.path.splitext(f)[1] in extensions]
+        [sh.copy(f, self._cache_path) for f in os.listdir('.') if os.path.isfile(f) and os.path.splitext(f)[1] in extensions]
 
         # copy dirs in current dir
         [copy_folder(d) for d in os.listdir('.') if os.path.isdir(d) and d not in self.cache_ignore]
