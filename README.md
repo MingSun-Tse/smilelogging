@@ -100,8 +100,23 @@ The `weights` folder is supposed to store the checkpoints during training; and `
 ```python
 weights_path = logger.weights_path
 gen_img_path = logger.gen_img_path
+log_path = logger.log_path
 ```
+For more these path names, see [here](https://github.com/MingSun-Tse/smilelogging/blob/59b874947238aabd4abd08c065eea499ffdbbdfa/smilelogging/logger.py#L285).
 
+The folder names are pre-specified. If you do not like them and want to use your own folder setups, this code also provide such customization feature. Here is what you can do:
+
+- Step 1: create a config txt file, such as `smilelogging_config.txt`. An example is below:
+```
+_experiments_dir: Other_Name_You_Like
+_weights_dir: Other_Name_You_Like
+_gen_img_dir: Other_Name_You_Like
+_log_dir: Other_Name_You_Like
+!reserve_dir: test/misc_results
+```
+where the `!reserve_dir` line is to indicate that you want to create a folder at path `test1/misc_results` (under each experiment folder). The path of this folder will be assigned as an attribute of the `Logger` class, so you may use `logger.test__misc_results` (note `/` is replaced with `__`) to access it.
+
+- Step 2: when running experiments, append `--hacksmile.ON --hacksmile.config <path_to_config_in_Step_1>`
 
 **More explanantions about the arguments and tips:**
 - If you are debugging code, you may not want to create an experiment folder under `Experiments`. Then use `--debug`, for example:
