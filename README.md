@@ -116,7 +116,13 @@ _log_dir: Other_Name_You_Like
 ```
 where the `!reserve_dir` line is to indicate that you want to create a folder at path `test/misc_results` (under each experiment folder). The path of this folder will be assigned as an attribute of the `Logger` class, so you may use `logger.test__misc_results` (note `/` is replaced with `__`) to access it.
 
-- Step 2: when running experiments, append `--hacksmile.ON --hacksmile.config <path_to_config_in_Step_1>` to your script.
+- Step 2: Add the following 2 lines (which are to enable a high-level feature of args) right after `args = parser.parse_args()`:
+```
+from smilelogging.utils import update_args
+args = update_args(args)
+```
+
+- Step 3: when running experiments, append `--hacksmile.ON --hacksmile.config <path_to_config_in_Step_1>` to your script.
 
 ## More Explanantions about the Arguments and TIPs
 
