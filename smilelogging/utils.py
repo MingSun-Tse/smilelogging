@@ -489,7 +489,7 @@ def parse_ExpID(path):
 def mkdirs(*paths):
     for p in paths:
         if not os.path.exists(p):
-            os.makedirs(p)
+            os.makedirs(p, exist_ok=True)
 
 class EMA():
     '''

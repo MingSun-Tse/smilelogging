@@ -215,8 +215,8 @@ class Logger(object):
         self.set_up_cache_ignore()
 
         # set up log_printer and log_tracker
-        self.log_printer = LogPrinter(self.logtxt, self.ExpID, args.debug or args.screen_print) # for all txt logging
-        self.log_tracker = LogTracker()  # for all numerical logging
+        # self.log_printer = LogPrinter(self.logtxt, self.ExpID, args.debug or args.screen_print) # for all txt logging
+        # self.log_tracker = LogTracker()  # for all numerical logging
 
         # initial print
         self.print_script()
@@ -228,6 +228,7 @@ class Logger(object):
         self.save_args() # to .yaml
         self.save_nvidia_smi() # print GPU info
         self.save_git_status()
+        self.cache_done = False
         self.cache_model() # backup code
         self.n_log_item = 0
 
@@ -395,12 +396,13 @@ class Logger(object):
     #         self.log_printer(values)
 
     def cache_model(self):
-        '''Save the modle architecture, loss, configs, in case of future check.'''
-        if self.args.debug: return
+        r"""Save the modle architecture, loss, configs, in case of future check.
+        """
+        if self.args.debug or self.cache_done: return
         
         t0 = time.time()
         if not os.path.exists(self._cache_path):
-            os.makedirs(self._cache_path)
+            os.makedirs(self._cache_path, exist_ok=True)
         logtmp = f"==> Caching various config files to '{self._cache_path}'"
         self.print(logtmp)
         
@@ -414,7 +416,7 @@ class Logger(object):
                         dir_path = pjoin(self._cache_path, root)
                         f_path = pjoin(root, f)
                         if not os.path.exists(dir_path):
-                            os.makedirs(dir_path)
+                            os.makedirs(dir_path, exist_ok=True)
                         if os.path.exists(f_path):
                             sh.copy(f_path, dir_path)
         
@@ -425,6 +427,7 @@ class Logger(object):
         [copy_folder(d) for d in os.listdir('.') if os.path.isdir(d) and d not in self.cache_ignore]
         logtmp = f'==> Caching done (time: {time.time() - t0:.2f}s)'
         self.print(logtmp)
+        self.cache_done = True
 
     def get_project_name(self):
         ''' For example, 'Projects/FasterRCNN/logger.py', then return 'FasterRCNN' '''
@@ -436,6 +439,8 @@ class Logger(object):
             yaml.dump(self.args.__dict__, f, indent=4)
     
     def netprint(self, net, comment=''):
+        r"""Deprecated. Will be removed.
+        """
         with open(pjoin(self.log_path, 'model_arch.txt'), 'w') as f:
             if comment:
                 print('%s:' % comment, file=f)
