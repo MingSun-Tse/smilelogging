@@ -215,7 +215,7 @@ class Logger(object):
         self.set_up_cache_ignore()
 
         # set up log_printer and log_tracker
-        # self.log_printer = LogPrinter(self.logtxt, self.ExpID, args.debug or args.screen_print) # for all txt logging
+        self.log_printer = LogPrinter(self.logtxt, self.ExpID, args.debug or args.screen_print) # for all txt logging
         # self.log_tracker = LogTracker()  # for all numerical logging
 
         # initial print
