@@ -1,7 +1,7 @@
 import time, math, os, sys, copy, numpy as np, shutil as sh
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from .utils import get_project_path, mkdirs
+from .utils import get_project_path, parse_ExpID, mkdirs
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from collections import OrderedDict
 import subprocess
@@ -215,7 +215,7 @@ class Logger(object):
         self.set_up_cache_ignore()
 
         # set up log_printer and log_tracker
-        self.log_printer = LogPrinter(self.logtxt, self.ExpID, args.debug or args.screen_print) # for all txt logging
+        self.log_printer = LogPrinter(self.logtxt, self.ExpID) # for all txt logging
         # self.log_tracker = LogTracker()  # for all numerical logging
 
         # initial print
@@ -271,9 +271,15 @@ class Logger(object):
             return CodeID
 
     def get_ExpID(self):
-        self.SERVER = os.environ["SERVER"] if 'SERVER' in os.environ.keys() else ''
-        TimeID = time.strftime("%Y%m%d-%H%M%S")
-        ExpID = 'SERVER' + self.SERVER + '-' + TimeID
+        r"""Assign a unique experiment id for the current experiment.
+        """
+        if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
+            project_path = get_project_path(self.args.resume_ExpID)
+            ExpID = parse_ExpID(project_path)
+        else:
+            self.SERVER = os.environ["SERVER"] if 'SERVER' in os.environ.keys() else ''
+            TimeID = time.strftime("%Y%m%d-%H%M%S")
+            ExpID = 'SERVER' + self.SERVER + '-' + TimeID
         return ExpID
 
     def set_up_dir(self):
