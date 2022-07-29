@@ -5,6 +5,7 @@ from .utils import get_project_path, parse_ExpID, mkdirs
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from collections import OrderedDict
 import subprocess
+import socket
 import yaml
 import builtins
 from torchsummaryX import summary
@@ -210,7 +211,7 @@ class Logger(object):
                     self.__setattr__(attr, value)
         
         # set up a unique experiment folder
-        self.ExpID = args.ExpID if hasattr(args, 'ExpID') and args.ExpID else self.get_ExpID()
+        self.ExpID = self.get_ExpID()
         self.set_up_dir()
         self.set_up_cache_ignore()
 
@@ -273,13 +274,14 @@ class Logger(object):
     def get_ExpID(self):
         r"""Assign a unique experiment id for the current experiment.
         """
+        self.SERVER = os.environ["SERVER"] if 'SERVER' in os.environ.keys() else '' # TODO-@mst: Use auto parsing IP
         if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
             project_path = get_project_path(self.args.resume_ExpID)
             ExpID = parse_ExpID(project_path)
+            TimeID = '-'.join(ExpID.split('-')[1:])
         else:
-            self.SERVER = os.environ["SERVER"] if 'SERVER' in os.environ.keys() else ''
             TimeID = time.strftime("%Y%m%d-%H%M%S")
-            ExpID = 'SERVER' + self.SERVER + '-' + TimeID
+        ExpID = 'SERVER' + self.SERVER + '-' + TimeID
         return ExpID
 
     def set_up_dir(self):
@@ -340,7 +342,10 @@ class Logger(object):
         self.print(blank, *value, **kwargs)
 
     def print_script(self):
-        script = 'cd %s\n' % os.path.abspath(os.getcwd())
+        hostname = socket.gethostname()
+        ip = 'ToAdd' # @mst-TODO
+        script = f'hostname: {hostname} ip: {ip}\n'
+        script += 'cd %s\n' % os.path.abspath(os.getcwd())
         if 'CUDA_VISIBLE_DEVICES' in os.environ:
             gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
             script += ' '.join(['CUDA_VISIBLE_DEVICES=%s python' % gpu_id, *sys.argv])
