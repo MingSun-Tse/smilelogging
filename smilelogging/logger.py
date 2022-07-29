@@ -71,73 +71,22 @@ class LogPrinter(object):
             logtmp += "('%s': %s) " % (real_key, args.__dict__[real_key])
         self.file.write(logtmp[:-1] + '\n')
 
-class LogTracker(object):
-    def __init__(self, momentum=0.9):
-        self.loss = OrderedDict()
-        self.momentum = momentum
-        self.show = OrderedDict()
+class LogTracker():
+    def __init__(self):
+        self._metrics = OrderedDict()
 
-    def __call__(self, name, value, step=-1, show=True):
-        '''
-            Update the loss value of <name>
-        '''
-        assert(type(step) == int)
-        # value = np.array(value)
-
-        if step == -1:
-            if name not in self.loss:
-                self.loss[name] = value
-            else:
-                self.loss[name] = self.loss[name] * \
-                    self.momentum + value * (1 - self.momentum)
+    def update(self, k, v):
+        if k in self._metrics:
+            self._metrics[k] = np.append(self._metrics[k], v)
         else:
-            if name not in self.loss:
-                self.loss[name] = [[step, value]]
-            else:
-                self.loss[name].append([step, value])
-        
-        # if the loss item will show in the log printing
-        self.show[name] = show
-
-    def avg(self, name):
-        nparray = np.array(self.loss[name])
-        return np.mean(nparray[:, 1], aixs=0)
+            self._metrics[k] = np.array([v])
     
-    def max(self, name):
-        nparray = np.array(self.loss[name])
-        # TODO: max index
-        return np.max(nparray[:, 1], axis=0)
-
-    def format(self):
-        '''
-            loss example: 
-                [[1, xx], [2, yy], ...] ==> [[step, [xx, yy]], ...]
-                xx ==> [xx, yy, ...]
-        '''
-        keys = self.loss.keys()
-        k_str, v_str = [], []
-        for k in keys:
-            if self.show[k] == False:
-                continue
-            v = self.loss[k]
-            if not hasattr(v, "__len__"): # xx
-                v = "%.4f" % v
-            else:
-                if not hasattr(v[0], "__len__"): # [xx, yy, ...]
-                    v = " ".join(["%.3f" % x for x in v])
-                elif hasattr(v[0][1], "__len__"): # [[step, [xx, yy]], ...]
-                    v = " ".join(["%.3f" % x for x in v[-1][1]])
-                else: # [[1, xx], [2, yy], ...]
-                    v = "%.4f" % v[-1][1]
-            
-            length = min(max(len(k), len(v)), 15)
-            format_str = "{:<%d}" % (length)
-            k_str.append(format_str.format(k))
-            v_str.append(format_str.format(v))
-        k_str = " | ".join(k_str)
-        v_str = " | ".join(v_str)
-        return k_str + " |", v_str + " |"
-
+    def reset(self):
+        self._metrics = OrderedDict()
+    
+    def get_metrics(self):
+        return self._metrics
+    
     def plot(self, name, out_path):
         '''
             Plot the loss of <name>, save it to <out_path>.
@@ -210,18 +159,17 @@ class Logger(object):
                     attr, value = [x.strip() for x in line.split(':')]
                     self.__setattr__(attr, value)
         
-        # set up a unique experiment folder
+        # Set up a unique experiment folder
         self.ExpID = self.get_ExpID()
         self.set_up_dir()
         self.set_up_cache_ignore()
 
-        # set up log_printer and log_tracker
-        self.log_printer = LogPrinter(self.logtxt, self.ExpID) # for all txt logging
-        # self.log_tracker = LogTracker()  # for all numerical logging
+        # Set up log_printer and log_tracker
+        self.log_printer = LogPrinter(self.logtxt, self.ExpID) # For all txt logging
+        self.log_tracker = LogTracker()
 
         # initial print
         self.print_script()
-        self.print_note()
         args.CodeID = self.get_CodeID() # get CodeID before 'print_args()' because it will be printed in log
         self.print_args()
 
@@ -233,43 +181,28 @@ class Logger(object):
         self.cache_model() # backup code
         self.n_log_item = 0
 
-        # globally redirect stderr and stdout. Overwriting the builtins.print fn may not be the best way to do so.
-        # Suggestions are welcome to @mingsun-tse.
-        sys.stderr = DoubleWriter(sys.stderr, self.logtxt)
-        builtins.print = self.print
-
     def get_CodeID(self):
-        if hasattr(self.args, 'CodeID') and self.args.CodeID:
-            return self.args.CodeID
-        else:
-            try:
-                # check if code is committed
-                f = '.git_status_%s.tmp' % time.time()
-                script = 'git status >> %s' % f
-                os.system(script)
-                x = open(f).readlines()
-                x = "".join(x)
-                os.remove(f)
-                if "Changes not staged for commit" in x:
-                    logtmp = "Warning! Your code is not committed. Cannot be too careful."
-                    self.print(logtmp)
-                    time.sleep(3)
-
-                # # old implementation to get CodeID, pretty dumb, deprecated
-                # f = '.CodeID_file_%s.tmp' % time.time()
-                # script = "git log --pretty=oneline >> %s" % f
-                # os.system(script)
-                # x = open(f).readline()
-                # os.remove(f)
-                # CodeID = x[:8]
-                CodeID = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
-                self.use_git = True
-            except:
-                CodeID = 'GitNotFound'
-                self.use_git = False
-                logtmp = "Warning! Git not found under this project. Highly recommended to use Git to manage code."
+        try:
+            # check if code is committed
+            f = '.git_status_%s.tmp' % time.time()
+            script = 'git status >> %s' % f
+            os.system(script)
+            x = open(f).readlines()
+            x = "".join(x)
+            os.remove(f)
+            if "Changes not staged for commit" in x:
+                logtmp = "Warning! Your code is not committed. Cannot be too careful."
                 self.print(logtmp)
-            return CodeID
+                time.sleep(3)
+
+            CodeID = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+            self.use_git = True
+        except:
+            CodeID = 'GitNotFound'
+            self.use_git = False
+            logtmp = "Warning! Git not found under this project. Highly recommended to use Git to manage code."
+            self.print(logtmp)
+        return CodeID
 
     def get_ExpID(self):
         r"""Assign a unique experiment id for the current experiment.
@@ -291,7 +224,7 @@ class Logger(object):
         if self.args.debug: # debug has the highest priority. If debug, all the things will be saved in Debug_dir
             project_path = self._debug_dir
 
-        # output interface
+        # Output interface
         self.exp_path     = project_path
         self.weights_path = pjoin(project_path, self._weights_dir)
         self.gen_img_path = pjoin(project_path, self._gen_img_dir)
@@ -301,7 +234,6 @@ class Logger(object):
         self._cache_path  = pjoin(project_path, ".caches")
         mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self._cache_path)         
         self.logtxt = open(self.logtxt_path, "a+")
-        self.script_hist = open('.script_history', 'a+') # save local script history, for convenience of check
 
         # user can customize the folders in experiment dir
         if hasattr(self.args, 'hacksmile') and self.args.hacksmile.config:
@@ -313,6 +245,10 @@ class Logger(object):
                     dir_path = f'{self.exp_path}/{dir_name}'
                     mkdirs(dir_path)
                     self.__setattr__(dir_name.replace('/', '__'), dir_path)
+
+        # Globally redirect stderr and stdout. Overwriting the builtins.print fn may not be the best way to do so.
+        sys.stderr = DoubleWriter(sys.stderr, self.logtxt)
+        builtins.print = self.print
 
     def set_up_cache_ignore(self):
         if os.path.isfile('.cache_ignore'):
@@ -353,12 +289,6 @@ class Logger(object):
             script += ' '.join(['python', *sys.argv])
         script += '\n'
         self.print(script, unprefix=True)
-        self.print(script, file=self.script_hist, unprefix=True)
-
-    def print_note(self):
-        if hasattr(self.args, 'note') and self.args.note:
-            self.ExpNote = f'ExpNote: {self.args.note}'
-            self.print(self.ExpNote, unprefix=True)
 
     def print_args(self):
         '''Example: ('batch_size', 16) ('CodeID', 12defsd2) ('decoder', models/small16x_ae_base/d5_base.pth)
@@ -394,17 +324,6 @@ class Logger(object):
 
     def plot(self, name, out_path):
         self.log_tracker.plot(name, out_path)
-
-    # def print(self, step):
-    #     keys, values = self.log_tracker.format()
-    #     k = keys.split("|")[0].strip()
-    #     if k: # only when there is sth to print, print 
-    #         values += " (step = %d)" % step
-    #         if step % (self.args.print_interval * 10) == 0 \
-    #             or len(self.log_tracker.loss.keys()) > self.n_log_item: # when a new loss is added into the loss pool, print
-    #             self.log_printer(keys)
-    #             self.n_log_item = len(self.log_tracker.loss.keys())
-    #         self.log_printer(values)
 
     def cache_model(self):
         r"""Save the modle architecture, loss, configs, in case of future check.
