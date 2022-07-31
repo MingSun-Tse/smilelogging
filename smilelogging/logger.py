@@ -149,6 +149,7 @@ class Logger(object):
         self._weights_dir = 'weights'
         self._gen_img_dir = 'gen_img'
         self._log_dir = 'log'
+        
         # customize logging folder names
         if hasattr(args, 'hacksmile') and args.hacksmile.config:
             for line in open(args.hacksmile.config):
