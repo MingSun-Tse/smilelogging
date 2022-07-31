@@ -252,16 +252,15 @@ class Logger(object):
         builtins.print = self.print
 
     def set_up_cache_ignore(self):
+        ignore = ['__pycache__', 'Experiments', 'Debug_Dir', '.git']
         if os.path.isfile('.cache_ignore'):
-            ignore = []
             for line in open('.cache_ignore'):
                 ignore += line.strip().split(',')
-        else:
-            ignore = ['__pycache__', 'Experiments', 'Debug_Dir', '.git'] # these dirs will not be cached
-            if hasattr(self.args, 'cache_ignore') and self.args.cache_ignore:
-                ignore += self.args.cache_ignore.split(',')
-                with open('.cache_ignore', 'w+') as f:
-                    f.write(','.join(ignore))
+        if hasattr(self.args, 'cache_ignore') and self.args.cache_ignore:
+            ignore += self.args.cache_ignore.split(',')
+        ignore = list(set(ignore)) # Remove repeated items
+        with open('.cache_ignore', 'w') as f:
+            f.write(','.join(ignore))
         self.cache_ignore = ignore
 
     def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False):
