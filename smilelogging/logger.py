@@ -1,4 +1,5 @@
 import time, math, os, sys, copy, numpy as np, shutil as sh
+import getpass
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from .utils import get_project_path, parse_ExpID, mkdirs
@@ -208,7 +209,10 @@ class Logger(object):
     def get_ExpID(self):
         r"""Assign a unique experiment id for the current experiment.
         """
-        self.SERVER = os.environ["SERVER"] if 'SERVER' in os.environ.keys() else '' # TODO-@mst: Use auto parsing IP
+        if self.args.SERVER:
+            self.SERVER = self.args.SERVER
+        else:
+            self.SERVER = os.environ["SERVER"] if 'SERVER' in os.environ.keys() else ''
         if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
             project_path = get_project_path(self.args.resume_ExpID)
             ExpID = parse_ExpID(project_path)
@@ -263,9 +267,12 @@ class Logger(object):
             f.write(','.join(ignore))
         self.cache_ignore = ignore
 
-    def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False):
-        '''Supposed to replace the standard print func. Print to console and logtxt file'''
+    def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False, acc=False):
+        r"""Supposed to replace the standard print func. Print to console and logtxt file
+        """
         prefix = '' if unprefix else "[%s %s %s] " % (self.ExpID[-6:], os.getpid(), time.strftime("%Y/%m/%d-%H:%M:%S"))
+        if acc:
+            prefix += '  ' * int(self.ExpID[-1])
         strtmp = prefix + sep.join([str(v) for v in value]) + end
         if file is None:
             self.logtxt.write(strtmp); self.logtxt.flush()
@@ -274,13 +281,22 @@ class Logger(object):
             file.write(strtmp); file.flush()
 
     def accprint(self, *value, **kwargs):
+        r"""Deprecated
+        """
         blank = '  ' * int(self.ExpID[-1])
         self.print(blank, *value, **kwargs)
 
-    def print_script(self):
+    def print_script(self, ip='ToAdd'): # @mst-TODO
         hostname = socket.gethostname()
-        ip = 'ToAdd' # @mst-TODO
-        script = f'hostname: {hostname} ip: {ip}\n'
+        user = getpass.getuser()
+
+        # Get IP address. Refer to: https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        
+        script = f'hostname: {hostname} userip: {user}@{ip}\n'
         script += 'cd %s\n' % os.path.abspath(os.getcwd())
         if 'CUDA_VISIBLE_DEVICES' in os.environ:
             gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
