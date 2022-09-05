@@ -69,10 +69,19 @@ class LogPrinter(object):
         self.file.write(logtmp[:-1] + '\n')
 
 class LogTracker():
+    r"""Logging all numerical results.
+    """
     def __init__(self):
         self._metrics = OrderedDict()
+        self._print_format = {}
 
     def update(self, k, v):
+        r"""
+        """
+        if ':' in k:
+            k, format_ = k.split(':')
+            self._print_format[k] = format_
+
         if k in self._metrics:
             self._metrics[k] = np.append(self._metrics[k], v)
         else:
@@ -81,8 +90,41 @@ class LogTracker():
     def reset(self):
         self._metrics = OrderedDict()
     
-    def get_metrics(self):
-        return self._metrics
+    def get_metrics(self, k=None):
+        if k is not None:
+            return self._metrics[k]
+        else:
+            return self._metrics
+    
+    def format(self, selected=None, not_selected=None, sep=' '):
+        r"""Format for print.
+        """
+        logstr = []
+        for k, v in self._metrics.items():
+            in_selected = True
+
+            if selected is not None:
+                in_selected = False
+                for s in selected.split(','):
+                    if fnmatch(k, s):
+                        in_selected = True
+                        break
+            
+            if not_selected is not None:
+                for s in not_selected.split(','):
+                    if fnmatch(k, s):
+                        in_selected = False
+                        break
+
+            if in_selected:
+                f = self._print_format[k] if k in self._print_format else f'%s'
+                logstr += [ f'{k} {f}' % v[-1] ]
+        return sep.join(logstr)
+    
+    def get_ma(self, k, window=10):
+        r"""Moving average.
+        """
+        return moving_average(self._metrics[k], window)
     
     # def plot(self, name, out_path):
     #     '''
