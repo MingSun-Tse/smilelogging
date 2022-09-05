@@ -1,11 +1,12 @@
 import time, math, os, sys, copy, numpy as np, shutil as sh
 import getpass
-from .utils import get_project_path, parse_ExpID, mkdirs, run_shell_command
+from .utils import get_project_path, parse_ExpID, mkdirs, run_shell_command, moving_average
 from collections import OrderedDict
 import subprocess
 import socket
 import yaml
 import builtins
+from fnmatch import fnmatch
 pjoin = os.path.join
 
 class DoubleWriter():
