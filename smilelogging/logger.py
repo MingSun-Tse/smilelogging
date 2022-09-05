@@ -143,6 +143,7 @@ class LogTracker():
 class Logger(object):
     def __init__(self, args):
         self.args = args
+        self.sl_cfg = '.smilelogging.cfg'
 
         # logging folder names. Below are the default names, which can also be customized via 'args.hacksmile.config'
         self._experiments_dir = 'Experiments'
@@ -256,15 +257,24 @@ class Logger(object):
         builtins.print = self.print
 
     def set_up_cache_ignore(self):
-        ignore = ['__pycache__', 'Experiments', 'Debug_Dir', '.git']
+        ignore_default = ['__pycache__', 'Experiments', 'Debug_Dir', '.git']
+
+        ignore_from_file = []
         if os.path.isfile('.cache_ignore'):
             for line in open('.cache_ignore'):
-                ignore += line.strip().split(',')
+                ignore_from_file += line.strip().split(',')
+        
+        ignore_from_arg = []
         if hasattr(self.args, 'cache_ignore') and self.args.cache_ignore:
-            ignore += self.args.cache_ignore.split(',')
+            ignore_from_arg += self.args.cache_ignore.split(',')
+        
+        ignore = ignore_default + ignore_from_file + ignore_from_arg
         ignore = list(set(ignore)) # Remove repeated items
-        with open('.cache_ignore', 'w') as f:
-            f.write(','.join(ignore))
+        
+        # If there is new cache_ignore, save it
+        if set(ignore) != set(ignore_from_file):
+            with open('.cache_ignore', 'w') as f:
+                f.write(','.join(ignore))
         self.cache_ignore = ignore
 
     def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False, acc=False):
