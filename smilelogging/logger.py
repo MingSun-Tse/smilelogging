@@ -1,15 +1,11 @@
 import time, math, os, sys, copy, numpy as np, shutil as sh
 import getpass
-import matplotlib; matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from .utils import get_project_path, parse_ExpID, mkdirs
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from .utils import get_project_path, parse_ExpID, mkdirs, run_shell_command
 from collections import OrderedDict
 import subprocess
 import socket
 import yaml
 import builtins
-from torchsummaryX import summary
 pjoin = os.path.join
 
 class DoubleWriter():
@@ -88,57 +84,56 @@ class LogTracker():
     def get_metrics(self):
         return self._metrics
     
-    def plot(self, name, out_path):
-        '''
-            Plot the loss of <name>, save it to <out_path>.
-        '''
-        v = self.loss[name]
-        if (not hasattr(v, "__len__")) or type(v[0][0]) != int: # do not log the 'step'
-            return
-        if hasattr(v[0][1], "__len__"):
-            # self.plot_heatmap(name, out_path)
-            return
-        v = np.array(v)
-        step, value = v[:, 0], v[:, 1]
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(step, value)
-        ax.set_xlabel("step")
-        ax.set_ylabel(name)
-        ax.grid()
-        fig.savefig(out_path, dpi=200)
-        plt.close(fig)
+    # def plot(self, name, out_path):
+    #     '''
+    #         Plot the loss of <name>, save it to <out_path>.
+    #     '''
+    #     v = self.loss[name]
+    #     if (not hasattr(v, "__len__")) or type(v[0][0]) != int: # do not log the 'step'
+    #         return
+    #     if hasattr(v[0][1], "__len__"):
+    #         # self.plot_heatmap(name, out_path)
+    #         return
+    #     v = np.array(v)
+    #     step, value = v[:, 0], v[:, 1]
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot(111)
+    #     ax.plot(step, value)
+    #     ax.set_xlabel("step")
+    #     ax.set_ylabel(name)
+    #     ax.grid()
+    #     fig.savefig(out_path, dpi=200)
+    #     plt.close(fig)
 
-    def plot_heatmap(self, name, out_path, show_ticks=False):
-        '''
-            A typical case: plot the training process of 10 weights
-            x-axis: step
-            y-axis: index (10 weights, 0-9)
-            value: the weight values
-        '''
-        v = self.loss[name]
-        step, value = [], []
-        [(step.append(x[0]), value.append(x[1])) for x in v]
-        n_class = len(value[0])
-        fig, ax = plt.subplots(figsize=[0.1*len(step), n_class / 5]) # /5 is set manually
-        im = ax.imshow(np.transpose(value), cmap='jet')
+    # def plot_heatmap(self, name, out_path, show_ticks=False):
+    #     '''
+    #         A typical case: plot the training process of 10 weights
+    #         x-axis: step
+    #         y-axis: index (10 weights, 0-9)
+    #         value: the weight values
+    #     '''
+    #     v = self.loss[name]
+    #     step, value = [], []
+    #     [(step.append(x[0]), value.append(x[1])) for x in v]
+    #     n_class = len(value[0])
+    #     fig, ax = plt.subplots(figsize=[0.1*len(step), n_class / 5]) # /5 is set manually
+    #     im = ax.imshow(np.transpose(value), cmap='jet')
         
-        # make a beautiful colorbar        
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes('right', size=0.05, pad=0.05)
-        fig.colorbar(im, cax=cax, orientation='vertical')
+    #     # make a beautiful colorbar        
+    #     cax = divider.append_axes('right', size=0.05, pad=0.05)
+    #     fig.colorbar(im, cax=cax, orientation='vertical')
         
-        # set the x and y ticks
-        # For now, this can not adjust its range adaptively, so deprecated.
-        # ax.set_xticks(range(len(step))); ax.set_xticklabels(step)
-        # ax.set_yticks(range(len(value[0]))); ax.set_yticklabels(range(len(value[0])))
+    #     # set the x and y ticks
+    #     # For now, this can not adjust its range adaptively, so deprecated.
+    #     # ax.set_xticks(range(len(step))); ax.set_xticklabels(step)
+    #     # ax.set_yticks(range(len(value[0]))); ax.set_yticklabels(range(len(value[0])))
         
-        interval = step[0] if len(step) == 1 else step[1] - step[0]
-        ax.set_xlabel("step (* interval = %d)" % interval)
-        ax.set_ylabel("index")
-        ax.set_title(name)
-        fig.savefig(out_path, dpi=200)
-        plt.close(fig)
+    #     interval = step[0] if len(step) == 1 else step[1] - step[0]
+    #     ax.set_xlabel("step (* interval = %d)" % interval)
+    #     ax.set_ylabel("index")
+    #     ax.set_title(name)
+    #     fig.savefig(out_path, dpi=200)
+    #     plt.close(fig)
 
 class Logger(object):
     def __init__(self, args):
@@ -185,30 +180,31 @@ class Logger(object):
         self.n_log_item = 0
 
     def get_CodeID(self):
-        try:
-            # check if code is committed
-            f = '.git_status_%s.tmp' % time.time()
-            script = 'git status >> %s' % f
-            os.system(script)
-            x = open(f).readlines()
-            x = "".join(x)
-            os.remove(f)
-            if "Changes not staged for commit" in x:
-                logtmp = "Warning! Your code is not committed. Cannot be too careful."
+        r"""Return git commit ID as CodeID
+        """
+        git_check = run_shell_command('git rev-parse --is-inside-work-tree')
+        self.use_git = len(git_check) == 1 and git_check[0] == 'true'
+        self.git_root = run_shell_command('git rev-parse --show-toplevel')[0] # The path where .git is placed
+
+        if self.use_git:
+            CodeID = run_shell_command('git rev-parse --short HEAD')
+            changed_files = run_shell_command('git diff --name-only')
+            new_real_change = False
+            for f in changed_files:
+                if f and not f.endswith('.sh'): # Not consider shell script change as a formal change
+                    new_real_change = True
+            if new_real_change:
+                logtmp = "Warning! There is (at least) one uncommitted change in your code. Recommended to git commit it first"
                 self.print(logtmp)
                 time.sleep(3)
-
-            CodeID = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
-            self.use_git = True
-        except:
+        else:
             CodeID = 'GitNotFound'
-            self.use_git = False
-            logtmp = "Warning! Git not found under this project. Highly recommended to use Git to manage code."
+            logtmp = "Warning! Git not found under this project. Highly recommended to use Git to manage code"
             self.print(logtmp)
         return CodeID
 
     def get_ExpID(self):
-        r"""Assign a unique experiment id for the current experiment.
+        r"""Assign a unique experiment id for the current experiment
         """
         if self.args.SERVER:
             self.SERVER = self.args.SERVER
@@ -306,7 +302,7 @@ class Logger(object):
         ip = s.getsockname()[0]
         s.close()
         
-        script = f'hostname: {hostname} userip: {user}@{ip}\n'
+        script = f'hostname: {hostname}  userip: {user}@{ip}\n'
         script += 'cd %s\n' % os.path.abspath(os.getcwd())
         if 'CUDA_VISIBLE_DEVICES' in os.environ:
             gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
@@ -345,9 +341,6 @@ class Logger(object):
             script = 'git status >> %s' % pjoin(self.log_path, 'git_status.txt')
             os.system(script)
     
-    def summary(self, *args, **kwargs):
-        summary(*args, **kwargs)
-
     def plot(self, name, out_path):
         self.log_tracker.plot(name, out_path)
 
