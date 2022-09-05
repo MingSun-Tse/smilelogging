@@ -191,7 +191,7 @@ class Logger(object):
             changed_files = run_shell_command('git diff --name-only')
             new_real_change = False
             for f in changed_files:
-                if f and not f.endswith('.sh'): # Not consider shell script change as a formal change
+                if f and not f.endswith('.sh') and f.endswith('.slurm'): # Not consider shell script change as a formal change
                     new_real_change = True
             if new_real_change:
                 logtmp = "Warning! There is (at least) one uncommitted change in your code. Recommended to git commit it first"
