@@ -179,6 +179,8 @@ class LogTracker():
     #     plt.close(fig)
 
 class Logger(object):
+    passer = {}
+    
     def __init__(self, args):
         self.args = args
         self.sl_cfg = '.smilelogging.cfg'
