@@ -346,6 +346,7 @@ class Logger(object):
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
+        self.userip = f'{user}@{ip}'
         
         script = f'hostname: {hostname}  userip: {user}@{ip}\n'
         script += 'cd %s\n' % os.path.abspath(os.getcwd())
