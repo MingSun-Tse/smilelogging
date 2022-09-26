@@ -203,6 +203,7 @@ class Logger(object):
                     self.__setattr__(attr, value)
         
         # Set up a unique experiment folder
+        self.userip, self.hostname = self.get_userip()
         self.ExpID = self.get_ExpID()
         self.set_up_dir()
         self.set_up_cache_ignore()
@@ -251,10 +252,8 @@ class Logger(object):
     def get_ExpID(self):
         r"""Assign a unique experiment id for the current experiment
         """
-        if self.args.SERVER:
-            self.SERVER = self.args.SERVER
-        else:
-            self.SERVER = os.environ["SERVER"] if 'SERVER' in os.environ.keys() else ''
+        self.SERVER = '%03d' % int(self.userip.split('.')[-1])
+        
         if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
             project_path = get_project_path(self.args.resume_ExpID)
             ExpID = parse_ExpID(project_path)
@@ -337,8 +336,7 @@ class Logger(object):
         blank = '  ' * int(self.ExpID[-1])
         self.print(blank, *value, **kwargs)
 
-    def print_script(self, ip='ToAdd'): # @mst-TODO
-        hostname = socket.gethostname()
+    def get_userip(self):
         user = getpass.getuser()
 
         # Get IP address. Refer to: https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
@@ -346,9 +344,13 @@ class Logger(object):
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
-        self.userip = f'{user}@{ip}'
-        
-        script = f'hostname: {hostname}  userip: {user}@{ip}\n'
+
+        userip = f'{user}@{ip}'
+        hostname = socket.gethostname()
+        return userip, hostname
+
+    def print_script(self, ip='ToAdd'): # @mst-TODO
+        script = f'hostname: {self.hostname}  userip: {self.userip}\n'
         script += 'cd %s\n' % os.path.abspath(os.getcwd())
         if 'CUDA_VISIBLE_DEVICES' in os.environ:
             gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
