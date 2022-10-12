@@ -136,8 +136,12 @@ This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experimen
 ## TODO
 - [ ] Add training and testing metric (like accuracy, PSNR) plots.
 
+## Mission of this project
+We target **100% open** scientific experimenting: 
+- Every number or data point in the paper (either in tables or figures) is traceable with a log/checkpoint.
+- Releasing the reviewing comments and communication process.
 
 ## Collaboration / Suggestions
-Currently, this is still a baby project. Any collaboration or suggestions are welcome to Huan Wang (Email: `wang.huan@northeastern.edu`).
+Currently, this is still an alpha project. Any collaboration or suggestions are welcome to Huan Wang (Email: `wang.huan@northeastern.edu`).
 
 
