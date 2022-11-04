@@ -24,7 +24,7 @@ def get_exp_name_id(exp_path):
 def standardize_metricline(line):
     r"""Make metric line in standard form.
     """
-    for m in ['(', ')', '[', ']', '<', '>', '|', ',', '.', ';', '!', '?',]: # Some non-numerical, no-meaning marks
+    for m in ['(', ')', '[', ']', '<', '>', '|', ',', ';', '!', '?',]: # Some non-numerical, no-meaning marks
         if m in line:
             line = line.replace(m, f' {m} ')
     if ':' in line:
@@ -40,7 +40,7 @@ def get_value(line, key, type_func=float):
     # print(line)
         
     value = line.split(f' {key} ')[1].strip().split()[0]
-    # print(value)
+    # print('get_value debug', value, line)
     
     if value.endswith('%'):
         value = type_func(value[:-1]) / 100.
