@@ -24,7 +24,7 @@ parser.add_argument('--corr_stats', type=str, default='spearman', choices=['pear
 parser.add_argument('--out_plot_path', type=str, default='plot.jpg')
 parser.add_argument('--tte', type=int, default=-1)
 parser.add_argument('--hhe', type=int, default=-1)
-parser.add_argument('--acc', type=int, default=-1)
+parser.add_argument('--acc', action='store_true')
 args = parser.parse_args()
 
 if args.tte > 0:
@@ -33,6 +33,10 @@ if args.tte > 0:
 if args.hhe > 0:
     os.system(f'head -n {args.hhe} {args.exps_folder}/{args.kw}/log/log.txt')
     exit(0)
+if args.acc:
+    os.system(f'cat {args.exps_folder}/{args.kw}/log/log.txt | grep Acc1')
+    exit(0)
+    
     
 # 1st filtering: get all the exps with the keyword
 all_exps_ = [x for x in glob.glob(f'{args.exps_folder}/{args.kw}') if os.path.isdir(x) and '_SERVER' in x]
