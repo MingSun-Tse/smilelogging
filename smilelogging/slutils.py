@@ -120,8 +120,9 @@ def parse_time(line):
 def parse_finish_time(log_f):
     lines = open(log_f, 'r').readlines()
     for k in range(1, min(1000, len(lines))):
-        if 'predicted finish time' in lines[-k].lower():
-            finish_time = lines[-k].split('time:')[1].split('(')[0].strip() # example: predicted finish time: 2020/10/25-08:21 (speed: 314.98s per timing)
+        line = lines[-k].lower()
+        if '(speed:' in line and 'per timing, total_time:' in line:
+            finish_time = lines[-k].split('(speed:')[0].split()[-1].strip() # example: predicted finish time: 2020/10/25-08:21 (speed: 314.98s per timing)
             return finish_time
 
 def get_ip():
