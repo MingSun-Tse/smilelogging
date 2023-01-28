@@ -1,11 +1,12 @@
-import time, math, os, sys, copy, numpy as np, shutil as sh
+import time, os, sys, numpy as np, shutil as sh
 import getpass
+import logging
 from .utils import get_project_path, parse_ExpID, mkdirs, run_shell_command, moving_average
 from collections import OrderedDict
-import subprocess
 import socket
 import yaml
 import builtins
+import traceback
 from fnmatch import fnmatch
 pjoin = os.path.join
 
@@ -18,56 +19,6 @@ class DoubleWriter():
     def flush(self):
         self.f1.flush()
         self.f2.flush()
-
-class LogPrinter(object):
-    def __init__(self, file, ExpID, print_to_screen=False):
-        self.file = file
-        self.ExpID = ExpID
-
-    def __call__(self, *in_str):
-        in_str = [str(x) for x in in_str]
-        in_str = " ".join(in_str)
-        short_exp_id = self.ExpID[-6:]
-        pid = os.getpid()
-        current_time = time.strftime("%Y/%m/%d-%H:%M:%S")
-        out_str = "[%s %s %s] %s" % (short_exp_id, pid, current_time, in_str)
-        print(out_str, file=self.file, flush=True) # print to txt
-    
-    def logprint(self, *in_str): # to keep the interface uniform
-        self.__call__(*in_str)
-
-    def accprint(self, *in_str):
-        blank = '  ' * int(self.ExpID[-1])
-        print(blank, *in_str)
-    
-    def netprint(self, *in_str): # i.e., print without any prefix
-        '''Deprecated. Use netprint in Logger.'''
-        for x in in_str:
-            print(x, file=self.file, flush=True)
-    
-    def print(self, *in_str):
-        '''print without any prefix'''
-        for x in in_str:
-            print(x, file=self.file, flush=True)
-    
-    def print_args(self, args):
-        '''Example: ('batch_size', 16) ('CodeID', 12defsd2) ('decoder', models/small16x_ae_base/d5_base.pth)
-            It will sort the arg keys in alphabeta order, case insensitive.'''
-        # build a key map for later sorting
-        key_map = {}
-        for k in args.__dict__:
-            k_lower = k.lower()
-            if k_lower in key_map:
-                key_map[k_lower + '_' + k_lower] = k
-            else:
-                key_map[k_lower] = k
-        
-        # print in the order of sorted lower keys 
-        logtmp = ''
-        for k_ in sorted(key_map.keys()):
-            real_key = key_map[k_]
-            logtmp += "('%s': %s) " % (real_key, args.__dict__[real_key])
-        self.file.write(logtmp[:-1] + '\n')
 
 class LogTracker():
     r"""Logging all numerical results.
@@ -126,57 +77,6 @@ class LogTracker():
         r"""Moving average.
         """
         return moving_average(self._metrics[k], window)
-    
-    # def plot(self, name, out_path):
-    #     '''
-    #         Plot the loss of <name>, save it to <out_path>.
-    #     '''
-    #     v = self.loss[name]
-    #     if (not hasattr(v, "__len__")) or type(v[0][0]) != int: # do not log the 'step'
-    #         return
-    #     if hasattr(v[0][1], "__len__"):
-    #         # self.plot_heatmap(name, out_path)
-    #         return
-    #     v = np.array(v)
-    #     step, value = v[:, 0], v[:, 1]
-    #     fig = plt.figure()
-    #     ax = fig.add_subplot(111)
-    #     ax.plot(step, value)
-    #     ax.set_xlabel("step")
-    #     ax.set_ylabel(name)
-    #     ax.grid()
-    #     fig.savefig(out_path, dpi=200)
-    #     plt.close(fig)
-
-    # def plot_heatmap(self, name, out_path, show_ticks=False):
-    #     '''
-    #         A typical case: plot the training process of 10 weights
-    #         x-axis: step
-    #         y-axis: index (10 weights, 0-9)
-    #         value: the weight values
-    #     '''
-    #     v = self.loss[name]
-    #     step, value = [], []
-    #     [(step.append(x[0]), value.append(x[1])) for x in v]
-    #     n_class = len(value[0])
-    #     fig, ax = plt.subplots(figsize=[0.1*len(step), n_class / 5]) # /5 is set manually
-    #     im = ax.imshow(np.transpose(value), cmap='jet')
-        
-    #     # make a beautiful colorbar        
-    #     cax = divider.append_axes('right', size=0.05, pad=0.05)
-    #     fig.colorbar(im, cax=cax, orientation='vertical')
-        
-    #     # set the x and y ticks
-    #     # For now, this can not adjust its range adaptively, so deprecated.
-    #     # ax.set_xticks(range(len(step))); ax.set_xticklabels(step)
-    #     # ax.set_yticks(range(len(value[0]))); ax.set_yticklabels(range(len(value[0])))
-        
-    #     interval = step[0] if len(step) == 1 else step[1] - step[0]
-    #     ax.set_xlabel("step (* interval = %d)" % interval)
-    #     ax.set_ylabel("index")
-    #     ax.set_title(name)
-    #     fig.savefig(out_path, dpi=200)
-    #     plt.close(fig)
 
 class Logger(object):
     passer = {}
@@ -208,16 +108,16 @@ class Logger(object):
         self.set_up_dir()
         self.set_up_cache_ignore()
 
-        # Set up log_printer and log_tracker
-        self.log_printer = LogPrinter(self.logtxt, self.ExpID) # For all txt logging
+        # Set up logging utils
         self.log_tracker = LogTracker()
+        # self._set_up_py_logging() # TODO-@mst: Not finished, a lot of problems
 
-        # initial print
+        # Initial print
         self.print_script()
         args.CodeID = self.get_CodeID() # get CodeID before 'print_args()' because it will be printed in log
         self.print_args()
 
-        # cache misc environment info  (e.g., GPU, git, etc.) and code files
+        # Cache misc environment info  (e.g., GPU, git, etc.) and code files
         self.save_args() # to .yaml
         self.save_nvidia_smi() # print GPU info
         self.save_git_status()
@@ -294,6 +194,7 @@ class Logger(object):
 
         # Globally redirect stderr and stdout. Overwriting the builtins.print fn may not be the best way to do so.
         sys.stderr = DoubleWriter(sys.stderr, self.logtxt)
+        # builtins.print = self.print
         builtins.print = self.print
 
     def set_up_cache_ignore(self):
@@ -317,24 +218,101 @@ class Logger(object):
                 f.write(','.join(ignore))
         self.cache_ignore = ignore
 
-    def print(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False, acc=False):
-        r"""Supposed to replace the standard print func. Print to console and logtxt file
+    def print(self, *msg, sep=' ', end='\n', file=None, flush=False,
+              unprefix=False, acc=False, level=0):
+        r"""Replace the standard print func. Print to console and logtxt file.
         """
-        prefix = '' if unprefix else "[%s %s %s] " % (self.ExpID[-6:], os.getpid(), time.strftime("%Y/%m/%d-%H:%M:%S"))
-        if acc:
-            prefix += '  ' * int(self.ExpID[-1])
-        strtmp = prefix + sep.join([str(v) for v in value]) + end
-        if file is None:
-            self.logtxt.write(strtmp); self.logtxt.flush()
-            sys.stdout.write(strtmp); sys.stdout.flush()
-        else:
-            file.write(strtmp); file.flush()
+        # Get the caller file name and line number
+        result = traceback.extract_stack()
+        caller = result[len(result) - 2]
+        file_path_of_caller = str(caller).split(',')[0].lstrip('<FrameSummary file ')
+        filename = os.path.relpath(file_path_of_caller)
+        lineno = sys._getframe().f_back.f_lineno
 
-    def accprint(self, *value, **kwargs):
-        r"""Deprecated
+        # Get the level info
+        level = str(level).lower()
+        assert level in ['0', '10', '20', '30', '40', '50',
+                         'notset', 'debug', 'info', 'warning', 'error', 'critical']
+                # See https://docs.python.org/3/library/logging.html#levels
+        if level in ['0', 'notset']:
+            info = '\b'
+        elif level in ['10', 'debug']:
+            info = '[DEBUG]'
+        elif level in ['20', 'info']:
+            info = '[INFO]'
+        elif level in ['30', 'warning']:
+            info = '[WARNING]'
+        elif level in ['40', 'error']:
+            info = '[ERROR]'
+        elif level in ['50', 'critical']:
+            info = '[CRITICAL]'
+
+        # Get the final message to print
+        msg = sep.join([str(m) for m in msg]) + end
+        if acc:
+            msg = '  ' * int(self.ExpID[-1]) + msg
+        prefix = '' if unprefix else "[%s %s %s] [%s:%d] %s " % (self.ExpID[-6:], os.getpid(),
+                                time.strftime("%Y/%m/%d-%H:%M:%S"),
+                                filename, lineno, info)
+        msg = prefix + msg
+
+        # Print
+        if file is None:
+            self.logtxt.write(msg)
+            sys.stdout.write(msg)
+            if flush:
+                self.logtxt.flush()
+                sys.stdout.flush()
+        else:
+            file.write(msg)
+            if flush:
+                file.flush()
+
+    def _set_up_py_logging(self):
+        self._logger = logging.getLogger()
+        self._logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler(self.logtxt_path)
+        fh.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+        self._fmt_unprefix = logging.Formatter(fmt='%(message)s')
+        fmt = logging.Formatter(
+            fmt=f'[{self.ExpID[-6:]} p%(process)d %(asctime)s] [%(pathname)s:%(lineno)d] [%(levelname)s] %(message)s',
+            datefmt='%Y/%m/%d-%H:%M:%S',
+        )
+        fh.setFormatter(fmt)
+        self._logger.addHandler(fh)
+        self._logger.addHandler(ch)
+
+    def print_v2(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False, acc=False, level='info'):
+        r"""Replace the standard print func. Print to console and logtxt file.
         """
-        blank = '  ' * int(self.ExpID[-1])
-        self.print(blank, *value, **kwargs)
+        msg = sep.join([str(v) for v in value]) + end
+        if acc:
+            msg = '  ' * int(self.ExpID[-1]) + msg
+
+        if unprefix:
+            pass
+
+        if file is not None:
+            file.write(msg)
+            if flush:
+                file.flush()
+        else:
+            level = str(level).lower()
+            assert level in ['0', '10', '20', '30', '40', '50',
+                             'notset', 'debug', 'info', 'warning', 'error', 'critical']
+            # See https://docs.python.org/3/library/logging.html#levels
+            if level in ['10', 'debug']:
+                self._logger.debug(msg)
+            elif level in ['20', 'info']:
+                self._logger.info(msg)
+            elif level in ['30', 'warning']:
+                self._logger.warning(msg)
+            elif level in ['40', 'error']:
+                self._logger.error(msg)
+            elif level in ['50', 'critical']:
+                self._logger.critical(msg)
 
     def get_userip(self):
         user = getpass.getuser()
@@ -349,7 +327,7 @@ class Logger(object):
         hostname = socket.gethostname()
         return userip, hostname
 
-    def print_script(self, ip='ToAdd'): # @mst-TODO
+    def print_script(self):
         script = f'hostname: {self.hostname}  userip: {self.userip}\n'
         script += 'cd %s\n' % os.path.abspath(os.getcwd())
         if 'CUDA_VISIBLE_DEVICES' in os.environ:
