@@ -140,7 +140,7 @@ class Logger(object):
         self.git_root = run_shell_command('git rev-parse --show-toplevel')[0]  # The path where .git is placed
 
         if self.use_git:
-            CodeID = run_shell_command('git rev-parse --short HEAD')
+            CodeID = run_shell_command('git rev-parse --short HEAD')[0]
             changed_files = run_shell_command('git diff --name-only')
             new_real_change = False
             for f in changed_files:
@@ -202,7 +202,7 @@ class Logger(object):
 
         # Globally redirect stderr and stdout. Overwriting the builtins.print fn may not be the best way to do so.
         sys.stderr = DoubleWriter(sys.stderr, self.logtxt)
-        # builtins.print = self.print
+        self.original_print = builtins.print # Keep a copy of the original print fn
         builtins.print = self.print
 
     def set_up_cache_ignore(self):
