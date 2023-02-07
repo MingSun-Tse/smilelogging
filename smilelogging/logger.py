@@ -235,6 +235,8 @@ class Logger(object):
         caller = result[len(result) - 2]
         file_path_of_caller = str(caller).split(',')[0].lstrip('<FrameSummary file ')
         filename = os.path.relpath(file_path_of_caller)
+        if f'{os.sep}site-packages{os.sep}' in filename:
+            filename = filename.split(f'{os.sep}site-packages{os.sep}')[1]
         lineno = sys._getframe().f_back.f_lineno
 
         # Get the level info
