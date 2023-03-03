@@ -493,10 +493,9 @@ def parse_ExpID(path):
     '''
     return 'SERVER' + path.split('_SERVER')[1].split('/')[0]
 
-def mkdirs(*paths):
+def mkdirs(*paths, exist_ok=False):
     for p in paths:
-        if not os.path.exists(p):
-            os.makedirs(p)
+        os.makedirs(p, exist_ok=exist_ok)
 
 class EMA():
     '''
