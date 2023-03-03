@@ -215,7 +215,7 @@ class Logger(object):
 
         ignore_from_arg = []
         if hasattr(self.args, 'cache_ignore') and self.args.cache_ignore:
-            ignore_from_arg += self.args.cache_ignore.split(',')
+            ignore_from_arg += self.args.cache_ignore.split(',')  # TODO-@mst: Use ymal for config
 
         ignore = ignore_default + ignore_from_file + ignore_from_arg
         ignore = list(set(ignore))  # Remove repeated items
@@ -388,7 +388,7 @@ class Logger(object):
     def cache_model(self):
         r"""Save the modle architecture, loss, configs, in case of future check.
         """
-        if self.args.debug or self.cache_done: return
+        if self.args.debug or self.args.no_cache or self.cache_done: return
 
         t0 = time.time()
         if not os.path.exists(self._cache_path):

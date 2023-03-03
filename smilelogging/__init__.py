@@ -6,6 +6,7 @@ argparser.add_argument('--project_name', '--experiment_name', dest='project_name
 argparser.add_argument('--experiments_dir', type=str, default='Experiments')
 argparser.add_argument('--debug', action="store_true")
 argparser.add_argument('--cache_ignore', type=str, default='')
+argparser.add_argument('--no_cache', action='store_true', help='not cache code')
 argparser.add_argument('--resume_ExpID', type=str, default='')
 
 # Customize smilelogging setups
