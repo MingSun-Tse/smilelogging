@@ -186,7 +186,7 @@ class Logger(object):
         self.logplt_path = pjoin(self.log_path, "plot")
         self.logtxt_path = pjoin(self.log_path, "log.txt")
         self._cache_path = pjoin(project_path, ".caches")
-        mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self._cache_path)
+        mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self._cache_path, exist_ok=True)
         self.logtxt = open(self.logtxt_path, "a+")
 
         # user can customize the folders in experiment dir
