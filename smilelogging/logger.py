@@ -227,9 +227,12 @@ class Logger(object):
         self.cache_ignore = ignore
 
     def print(self, *msg, sep=' ', end='\n', file=None, flush=False,
-              unprefix=False, acc=False, level=0):
+              unprefix=False, acc=False, level=0, main_process_only=True):
         r"""Replace the standard print func. Print to console and logtxt file.
         """
+        if main_process_only and os.getenv('GLOBAL_RANK', -1) != 0:
+            return
+
         # Get the caller file name and line number
         result = traceback.extract_stack()
         caller = result[len(result) - 2]
@@ -298,6 +301,22 @@ class Logger(object):
         fh.setFormatter(fmt)
         self._logger.addHandler(fh)
         self._logger.addHandler(ch)
+
+    def info(self, *msg, sep=' ', end='\n', file=None, flush=False,
+              unprefix=False, acc=False, main_process_only=True):
+        """Reload logger.info in python logging
+        """
+        self.print(*msg, sep=sep, end=end, file=file, flush=flush,
+                   unprefix=unprefix, acc=acc, level='info',
+                   main_process_only=main_process_only)
+
+    def warn(self, *msg, sep=' ', end='\n', file=None, flush=False,
+              unprefix=False, acc=False, main_process_only=True):
+        """Reload logger.warn in python logging
+        """
+        self.print(*msg, sep=sep, end=end, file=file, flush=flush,
+                   unprefix=unprefix, acc=acc, level='warning',
+                   main_process_only=main_process_only)
 
     def print_v2(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False, acc=False, level='info'):
         r"""Replace the standard print func. Print to console and logtxt file.
