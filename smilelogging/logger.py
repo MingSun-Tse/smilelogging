@@ -1,7 +1,7 @@
 import time, os, sys, numpy as np, shutil as sh
 import getpass
 import logging
-from .utils import get_project_path, parse_ExpID, mkdirs, run_shell_command, moving_average
+from .utils import get_project_path, parse_ExpID, run_shell_command, moving_average
 from collections import OrderedDict
 import socket
 import yaml
@@ -11,6 +11,9 @@ from fnmatch import fnmatch
 
 pjoin = os.path.join
 
+def mkdirs(*paths, exist_ok=False):
+    for p in paths:
+        os.makedirs(p, mode=0o777, exist_ok=exist_ok)  # 777 mode may not be safe but easy for now
 
 class DoubleWriter():
     def __init__(self, f1, f2):
@@ -88,9 +91,10 @@ class LogTracker():
 class Logger(object):
     passer = {}
 
-    def __init__(self, args):
+    def __init__(self, args, overwrite_print=False):
         self.args = args
         self.sl_cfg = '.smilelogging.cfg'
+        self.overwrite_print = overwrite_print
 
         # logging folder names. Below are the default names, which can also be customized via 'args.hacksmile.config'
         self._experiments_dir = 'Experiments'
@@ -113,7 +117,9 @@ class Logger(object):
         self.userip, self.hostname = self.get_userip()
         self.ExpID = self.get_ExpID()
         self.set_up_dir()
-        self.set_up_cache_ignore()
+        if os.getenv('GLOBAL_RANK', -1) in [-1, 0]:
+            self.set_up_cache_ignore()
+        self.set_up_logtxt()
 
         # Set up logging utils
         self.log_tracker = LogTracker()
@@ -131,6 +137,7 @@ class Logger(object):
         self.cache_done = False
         self.cache_model()  # backup code
         self.n_log_item = 0
+
 
     def get_CodeID(self):
         r"""Return git commit ID as CodeID
@@ -172,7 +179,9 @@ class Logger(object):
         return ExpID
 
     def set_up_dir(self):
-        project_path = pjoin("%s/%s_%s" % (self._experiments_dir, self.args.project_name, self.ExpID))
+        global_rank = os.getenv('GLOBAL_RANK', None)
+        ext = f'[Rank{global_rank}]' if global_rank is not None else ''
+        project_path = pjoin("%s/%s%s_%s" % (self._experiments_dir, self.args.project_name, ext, self.ExpID))
         if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
             project_path = get_project_path(self.args.resume_ExpID)
         if self.args.debug:  # debug has the highest priority. If debug, all the things will be saved in Debug_dir
@@ -187,7 +196,6 @@ class Logger(object):
         self.logtxt_path = pjoin(self.log_path, "log.txt")
         self._cache_path = pjoin(project_path, ".caches")
         mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self._cache_path, exist_ok=True)
-        self.logtxt = open(self.logtxt_path, "a+")
 
         # user can customize the folders in experiment dir
         if hasattr(self.args, 'hacksmile') and self.args.hacksmile.config:
@@ -200,10 +208,13 @@ class Logger(object):
                     mkdirs(dir_path)
                     self.__setattr__(dir_name.replace('/', '__'), dir_path)
 
+    def set_up_logtxt(self):
+        self.logtxt = open(self.logtxt_path, "a+")
         # Globally redirect stderr and stdout. Overwriting the builtins.print fn may not be the best way to do so.
-        sys.stderr = DoubleWriter(sys.stderr, self.logtxt)
-        self.original_print = builtins.print # Keep a copy of the original print fn
-        builtins.print = self.print
+        if self.overwrite_print:
+            sys.stderr = DoubleWriter(sys.stderr, self.logtxt)
+            self.original_print = builtins.print  # Keep a copy of the original print fn
+            builtins.print = self.print
 
     def set_up_cache_ignore(self):
         ignore_default = ['__pycache__', 'Experiments', 'Debug_Dir', '.git']
@@ -230,7 +241,7 @@ class Logger(object):
               unprefix=False, acc=False, level=0, main_process_only=True):
         r"""Replace the standard print func. Print to console and logtxt file.
         """
-        if main_process_only and os.getenv('GLOBAL_RANK', -1) != 0:
+        if main_process_only and os.getenv('GLOBAL_RANK', -1) not in [-1, 0]:
             return
 
         # Get the caller file name and line number
