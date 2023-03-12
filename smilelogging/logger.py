@@ -103,6 +103,8 @@ class Logger(object):
         self._gen_img_dir = 'gen_img'
         self._log_dir = 'log'
 
+        self._figure_out_rank()
+
         # customize logging folder names
         if hasattr(args, 'hacksmile') and args.hacksmile.config:
             for line in open(args.hacksmile.config):
@@ -138,6 +140,14 @@ class Logger(object):
         self.cache_model()  # backup code
         self.n_log_item = 0
 
+    def _figure_out_rank(self):
+        global_rank = os.getenv('GLOBAL_RANK', -1)
+        local_rank = os.getenv('LOCAL_RANK', -1)
+        if local_rank != -1:  # DDP is used
+            if global_rank == -1:  # single-node DDP
+                global_rank = local_rank
+        self.global_rank = int(global_rank)
+        self.local_rank = int(local_rank)
 
     def get_CodeID(self):
         r"""Return git commit ID as CodeID
@@ -179,9 +189,17 @@ class Logger(object):
         return ExpID
 
     def set_up_dir(self):
-        global_rank = os.getenv('GLOBAL_RANK', None)
-        ext = f'[Rank{global_rank}]' if global_rank is not None else ''
-        project_path = pjoin("%s/%s%s_%s" % (self._experiments_dir, self.args.project_name, ext, self.ExpID))
+        if self.global_rank == -1:
+            other_ranks_folder = ''
+            exp_name_ext = ''
+        else:
+            other_ranks_folder = '' if self.global_rank == 0 else 'OtherRanks'
+            exp_name_ext = f'[Rank{self.global_rank}]'
+        project_path = pjoin("%s/%s/%s%s_%s" % (self._experiments_dir,
+                                                other_ranks_folder,
+                                                self.args.project_name,
+                                                exp_name_ext,
+                                                self.ExpID))
         if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
             project_path = get_project_path(self.args.resume_ExpID)
         if self.args.debug:  # debug has the highest priority. If debug, all the things will be saved in Debug_dir
@@ -241,8 +259,9 @@ class Logger(object):
               unprefix=False, acc=False, level=0, main_process_only=True):
         r"""Replace the standard print func. Print to console and logtxt file.
         """
-        if main_process_only and os.getenv('GLOBAL_RANK', -1) not in [-1, 0]:
-            return
+        if main_process_only:
+            if self.global_rank not in [-1, 0]:
+                return
 
         # Get the caller file name and line number
         result = traceback.extract_stack()
@@ -286,6 +305,7 @@ class Logger(object):
             msg = prefix + msg
 
         # Print
+        flush = True
         if file is None:
             self.logtxt.write(msg)
             sys.stdout.write(msg)
