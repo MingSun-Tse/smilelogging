@@ -53,8 +53,8 @@ def parse_ExpID(path):
 
 def mkdirs(*paths, exist_ok=False):
     for p in paths:
+        os.umask(0)
         os.makedirs(p, mode=0o777, exist_ok=exist_ok)  # 777 mode may not be safe but easy for now
-
 
 class DoubleWriter():
     def __init__(self, f1, f2):
