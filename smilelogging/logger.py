@@ -183,6 +183,7 @@ class Logger(object):
         self.n_log_item = 0
 
     def _figure_out_rank(self):
+        # Get ranks from env
         global_rank = os.getenv('GLOBAL_RANK', -1)
         local_rank = os.getenv('LOCAL_RANK', -1)
         if local_rank != -1:  # DDP is used
@@ -190,6 +191,12 @@ class Logger(object):
                 global_rank = local_rank
         self.global_rank = int(global_rank)
         self.local_rank = int(local_rank)
+
+        # Get ranks from args
+        if hasattr(self.args, 'global_rank') and self.args.global_rank >= 0:
+            self.global_rank = self.args.global_rank
+        if hasattr(self.args, 'local_rank') and self.args.global_rank >= 0:
+            self.local_rank = self.args.local_rank
 
     def get_CodeID(self):
         r"""Return git commit ID as CodeID
@@ -329,17 +336,17 @@ class Logger(object):
                          'notset', 'debug', 'info', 'warning', 'error', 'critical']
         # See https://docs.python.org/3/library/logging.html#levels
         if level in ['0', 'notset']:
-            info = '\b'
+            info = ''
         elif level in ['10', 'debug']:
-            info = '[DEBUG]'
+            info = '[DEBUG] '
         elif level in ['20', 'info']:
-            info = '[INFO]'
+            info = ''
         elif level in ['30', 'warning']:
-            info = '[WARNING]'
+            info = '[WARNING] '
         elif level in ['40', 'error']:
-            info = '[ERROR]'
+            info = '[ERROR] '
         elif level in ['50', 'critical']:
-            info = '[CRITICAL]'
+            info = '[CRITICAL] '
 
         # Get the final message to print
         msg = sep.join([str(m) for m in msg]) + end
@@ -347,7 +354,7 @@ class Logger(object):
             msg = '  ' * int(self.ExpID[-1]) + msg  # Add blanks to acc lines for easier identification
 
         if not unprefix:
-            prefix = "[%s %s %s] [%s:%d] %s " % (self.ExpID[-6:],
+            prefix = "[%s %s %s] [%s:%d] %s" % (self.ExpID[-6:],
                                                  os.getpid(),
                                                  time.strftime("%Y/%m/%d-%H:%M:%S"),
                                                  filename,
