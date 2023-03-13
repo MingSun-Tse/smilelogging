@@ -1,19 +1,60 @@
 import time, os, sys, numpy as np, shutil as sh
 import getpass
+import subprocess
 import logging
-from .utils import get_project_path, parse_ExpID, run_shell_command, moving_average
 from collections import OrderedDict
 import socket
 import yaml
 import builtins
 import traceback
+import glob
 from fnmatch import fnmatch
 
 pjoin = os.path.join
 
+def run_shell_command(cmd, inarg=None):
+    r"""Run shell command and return the output (string) in a list
+    """
+    cmd = ' '.join(cmd.split())
+    if ' | ' in cmd: # Refer to: https://stackoverflow.com/a/13332300/12554945
+        cmds = cmd.split(' | ')
+        assert len(cmds) == 2, "Only support one pipe now"
+        fn = subprocess.Popen(cmds[0].split(), stdout=subprocess.PIPE)
+        result = subprocess.run(cmds[1].split(), stdin=fn.stdout, stdout=subprocess.PIPE)
+    else:
+        result = subprocess.run(cmd.split(), stdout=subprocess.PIPE)
+    return result.stdout.decode('utf-8').strip().split('\n')
+
+
+def moving_average(x, N=10):
+    r"""Refer to: https://stackoverflow.com/questions/13728392/moving-average-or-running-mean
+    """
+    import scipy.ndimage as ndi
+    return ndi.uniform_filter1d(x, N, mode='constant', origin=-(N//2))[:-(N-1)]
+
+
+def get_project_path(ExpID):
+    full_path = glob.glob("Experiments/*%s*" % ExpID)
+    assert (len(full_path) == 1), "There should be only ONE folder with <ExpID> in its name"
+    return full_path[0]
+
+
+def parse_ExpID(path):
+    '''parse out the ExpID from 'path', which can be a file or directory.
+    Example: Experiments/AE__ckpt_epoch_240.pth__LR1.5__originallabel__vgg13_SERVER138-20200829-202307/gen_img
+    Example: Experiments/AE__ckpt_epoch_240.pth__LR1.5__originallabel__vgg13_SERVER-20200829-202307/gen_img
+    '''
+    rank = ''
+    if 'RANK' in path:
+        rank = path.split('RANK')[1].split('-')[0]
+        rank = f'RANK{rank}-'
+    return rank + 'SERVER' + path.split('SERVER')[1].split('/')[0]
+
+
 def mkdirs(*paths, exist_ok=False):
     for p in paths:
         os.makedirs(p, mode=0o777, exist_ok=exist_ok)  # 777 mode may not be safe but easy for now
+
 
 class DoubleWriter():
     def __init__(self, f1, f2):
@@ -91,10 +132,11 @@ class LogTracker():
 class Logger(object):
     passer = {}
 
-    def __init__(self, args, overwrite_print=False):
+    def __init__(self, args, overwrite_print=False, auto_resume=False):
         self.args = args
         self.sl_cfg = '.smilelogging.cfg'
         self.overwrite_print = overwrite_print
+        self.auto_resume = auto_resume
 
         # logging folder names. Below are the default names, which can also be customized via 'args.hacksmile.config'
         self._experiments_dir = 'Experiments'
@@ -117,9 +159,8 @@ class Logger(object):
 
         # Set up a unique experiment folder
         self.userip, self.hostname = self.get_userip()
-        self.ExpID = self.get_ExpID()
         self.set_up_dir()
-        if os.getenv('GLOBAL_RANK', -1) in [-1, 0]:
+        if self.global_rank in [-1, 0]:
             self.set_up_cache_ignore()
         self.set_up_logtxt()
 
@@ -137,7 +178,8 @@ class Logger(object):
         self.save_nvidia_smi()  # print GPU info
         self.save_git_status()
         self.cache_done = False
-        self.cache_model()  # backup code
+        if args.resume_TimeID == '' and self.global_rank in [-1, 0]:
+            self.cache_model()  # backup code
         self.n_log_item = 0
 
     def _figure_out_rank(self):
@@ -174,36 +216,45 @@ class Logger(object):
             self.print(logtmp)
         return CodeID
 
-    def get_ExpID(self):
-        r"""Assign a unique experiment id for the current experiment
-        """
-        self.SERVER = '%03d' % int(self.userip.split('.')[-1])
-
-        if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
-            project_path = get_project_path(self.args.resume_ExpID)
-            ExpID = parse_ExpID(project_path)
-            TimeID = '-'.join(ExpID.split('-')[1:])
-        else:
-            TimeID = time.strftime("%Y%m%d-%H%M%S")
-        ExpID = 'SERVER' + self.SERVER + '-' + TimeID
-        return ExpID
-
     def set_up_dir(self):
+        # Get rank for each process (used in multi-process training)
         if self.global_rank == -1:
             other_ranks_folder = ''
-            exp_name_ext = ''
+            rank = ''
         else:
             other_ranks_folder = '' if self.global_rank == 0 else 'OtherRanks'
-            exp_name_ext = f'[Rank{self.global_rank}]'
-        project_path = pjoin("%s/%s/%s%s_%s" % (self._experiments_dir,
+            rank = f'RANK{self.global_rank}-'
+
+        # ---------------- Set up a unique experiment folder for each process ----------------
+        project_path = ''
+
+        # If auto_resume, check if there already exists the specified experiment folder name
+        if self.args.resume_TimeID == 'latest':
+            # select the latest experiment folder
+            exp_mark = f"%s/%s/%s_%sSERVER*" % (self._experiments_dir,
                                                 other_ranks_folder,
                                                 self.args.project_name,
-                                                exp_name_ext,
-                                                self.ExpID))
-        if hasattr(self.args, 'resume_ExpID') and self.args.resume_ExpID:
-            project_path = get_project_path(self.args.resume_ExpID)
+                                                rank)
+            exps = glob.glob(exp_mark)
+            if len(exps) > 0:
+                project_path = sorted(exps)[-1]
+
+        elif self.args.resume_TimeID:
+            raise NotImplementedError  # resume a specific ExpID
+
+        if project_path != '':
+            self.ExpID = parse_ExpID(project_path)  # Every experiment folder is binded with an ExpID
+        else:
+            server = 'SERVER%03d-' % int(self.userip.split('.')[-1])
+            self.ExpID = rank + server + time.strftime("%Y%m%d-%H%M%S")
+            project_path = "%s/%s/%s_%s" % (self._experiments_dir,
+                                            other_ranks_folder,
+                                            self.args.project_name,
+                                            self.ExpID)
+
         if self.args.debug:  # debug has the highest priority. If debug, all the things will be saved in Debug_dir
             project_path = self._debug_dir
+        # ---------------- Set up a unique experiment folder for each process ----------------
 
         # Output interface
         self.exp_path = project_path
