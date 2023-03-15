@@ -261,6 +261,7 @@ class Logger(object):
 
         if self.args.debug:  # debug has the highest priority. If debug, all the things will be saved in Debug_dir
             project_path = self._debug_dir
+        project_path = os.path.normpath(project_path)
         # ---------------- Set up a unique experiment folder for each process ----------------
 
         # Output interface
