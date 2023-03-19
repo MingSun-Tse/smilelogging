@@ -1,4 +1,6 @@
 import time, os, sys, numpy as np, shutil as sh
+from pytz import timezone
+from datetime import datetime
 import getpass
 import subprocess
 import logging
@@ -253,7 +255,9 @@ class Logger(object):
             self.ExpID = parse_ExpID(project_path)  # Every experiment folder is binded with an ExpID
         else:
             server = 'SERVER%03d-' % int(self.userip.split('.')[-1])
-            self.ExpID = rank + server + time.strftime("%Y%m%d-%H%M%S")
+            tz = timezone('EST')
+            TimeID = datetime.now(tz).strftime("%Y%m%d-%H%M%S")
+            self.ExpID = rank + server + TimeID
             project_path = "%s/%s/%s_%s" % (self._experiments_dir,
                                             other_ranks_folder,
                                             self.args.project_name,
