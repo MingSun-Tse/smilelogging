@@ -1,21 +1,25 @@
-import time, os, sys
-import shutil as sh
-import numpy as np
-from pytz import timezone
-from datetime import datetime
-import getpass
-import subprocess
-import logging
-from collections import OrderedDict
-import socket
-import yaml
 import builtins
-import traceback
+import getpass
 import glob
-from fnmatch import fnmatch
+import logging
+import os
 import re
+import shutil as sh
+import socket
+import subprocess
+import sys
+import time
+import traceback
+from collections import OrderedDict
+from datetime import datetime
+from fnmatch import fnmatch
+
+import numpy as np
+import yaml
+from pytz import timezone
 
 pjoin = os.path.join
+
 
 def run_shell_command(cmd, inarg=None):
     r"""Run shell command and return the output (string) in a list
@@ -35,7 +39,7 @@ def moving_average(x, N=10):
     r"""Refer to: https://stackoverflow.com/questions/13728392/moving-average-or-running-mean
     """
     import scipy.ndimage as ndi
-    return ndi.uniform_filter1d(x, N, mode='constant', origin=-(N//2))[:-(N-1)]
+    return ndi.uniform_filter1d(x, N, mode='constant', origin=-(N // 2))[:-(N - 1)]
 
 
 def get_project_path(ExpID):
@@ -60,6 +64,7 @@ def mkdirs(*paths, exist_ok=False):
     for p in paths:
         os.umask(0)
         os.makedirs(p, mode=0o777, exist_ok=exist_ok)  # 777 mode may not be safe but easy for now
+
 
 class DoubleWriter():
     def __init__(self, f1, f2):
@@ -284,7 +289,7 @@ class Logger(object):
         all_logtxts = sorted(all_logtxts)  # e.g., ['log.txt', 'log_prior1.txt', 'log_prior2.txt']
         for f in all_logtxts[::-1]:  # process the txts from the oldest to newest
             if 'log_prior' in f:  # 'log_prior1.txt' --> 2
-                num = int( f.split('log_prior')[1].split('.txt')[0] ) + 1
+                num = int(f.split('log_prior')[1].split('.txt')[0]) + 1
             else:
                 num = 1
             new_f = f'log_prior{num}.txt'
@@ -334,7 +339,7 @@ class Logger(object):
         self.cache_ignore = ignore
 
     def print(self, *msg, sep=' ', end='\n', file=None, flush=False,
-              unprefix=False, acc=False, level=0, main_process_only=True):
+              callinfo=None, unprefix=False, acc=False, level=0, main_process_only=True):
         r"""Replace the standard print func. Print to console and logtxt file.
         """
         if main_process_only:
@@ -342,13 +347,15 @@ class Logger(object):
                 return
 
         # Get the caller file name and line number
-        result = traceback.extract_stack()
-        caller = result[len(result) - 2]
-        file_path_of_caller = str(caller).split(',')[0].lstrip('<FrameSummary file ')
-        filename = os.path.relpath(file_path_of_caller)
-        if f'{os.sep}site-packages{os.sep}' in filename:
-            filename = filename.split(f'{os.sep}site-packages{os.sep}')[1]
-        lineno = sys._getframe().f_back.f_lineno
+        if callinfo is None:
+            result = traceback.extract_stack()
+            caller = result[len(result) - 2]
+            file_path_of_caller = str(caller).split(',')[0].lstrip('<FrameSummary file ')
+            filename = os.path.relpath(file_path_of_caller)
+            if f'{os.sep}site-packages{os.sep}' in filename:
+                filename = filename.split(f'{os.sep}site-packages{os.sep}')[1]
+            linenum = sys._getframe().f_back.f_lineno
+            callinfo = f'{filename}:{linenum}'
 
         # Get the level info
         level = str(level).lower()
@@ -374,12 +381,11 @@ class Logger(object):
             msg = '  ' * int(self.ExpID[-1]) + msg  # Add blanks to acc lines for easier identification
 
         if not unprefix:
-            prefix = "[%s %s %s] [%s:%d] %s" % (self.ExpID[-6:],
-                                                 os.getpid(),
-                                                 time.strftime("%Y/%m/%d-%H:%M:%S"),
-                                                 filename,
-                                                 lineno,
-                                                 info)
+            prefix = "[%s %s %s] [%s] %s" % (self.ExpID[-6:],
+                                             os.getpid(),
+                                             time.strftime("%Y/%m/%d-%H:%M:%S"),
+                                             callinfo,
+                                             info)
             msg = prefix + msg
 
         # Print
@@ -412,15 +418,24 @@ class Logger(object):
         self._logger.addHandler(ch)
 
     def info(self, *msg, sep=' ', end='\n', file=None, flush=False,
-              unprefix=False, acc=False, main_process_only=True):
-        """Reload logger.info in python logging
+             unprefix=False, acc=False, main_process_only=True):
+        r"""Reload logger.info in python logging
         """
+        result = traceback.extract_stack()
+        caller = result[len(result) - 2]
+        file_path_of_caller = str(caller).split(',')[0].lstrip('<FrameSummary file ')
+        filename = os.path.relpath(file_path_of_caller)
+        if f'{os.sep}site-packages{os.sep}' in filename:
+            filename = filename.split(f'{os.sep}site-packages{os.sep}')[1]
+        linenum = sys._getframe().f_back.f_lineno
+        callinfo = f'{filename}:{linenum}'
+
         self.print(*msg, sep=sep, end=end, file=file, flush=flush,
-                   unprefix=unprefix, acc=acc, level='info',
+                   callinfo=callinfo, unprefix=unprefix, acc=acc, level='info',
                    main_process_only=main_process_only)
 
     def warn(self, *msg, sep=' ', end='\n', file=None, flush=False,
-              unprefix=False, acc=False, main_process_only=True):
+             unprefix=False, acc=False, main_process_only=True):
         """Reload logger.warn in python logging
         """
         self.print(*msg, sep=sep, end=end, file=file, flush=flush,
