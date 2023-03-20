@@ -282,6 +282,8 @@ class Logger(object):
         self.gen_img_path = pjoin(project_path, self._gen_img_dir)
         self.log_path = pjoin(project_path, self._log_dir)
         self.logplt_path = pjoin(self.log_path, "plot")
+        self._cache_path = pjoin(project_path, ".caches")
+        mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self._cache_path, exist_ok=True)
         self.logtxt_path = pjoin(self.log_path, "log.txt")
 
         # Rename existing log txt files (log.txt will only store the newest log)
@@ -294,9 +296,6 @@ class Logger(object):
                 num = 1
             new_f = f'log_prior{num}.txt'
             os.rename(pjoin(self.log_path, f), pjoin(self.log_path, new_f))
-
-        self._cache_path = pjoin(project_path, ".caches")
-        mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self._cache_path, exist_ok=True)
 
         # user can customize the folders in experiment dir
         if hasattr(self.args, 'hacksmile') and self.args.hacksmile.config:
