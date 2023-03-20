@@ -1,4 +1,6 @@
-import time, os, sys, numpy as np, shutil as sh
+import time, os, sys
+import shutil as sh
+import numpy as np
 from pytz import timezone
 from datetime import datetime
 import getpass
@@ -11,6 +13,7 @@ import builtins
 import traceback
 import glob
 from fnmatch import fnmatch
+import re
 
 pjoin = os.path.join
 
@@ -18,7 +21,7 @@ def run_shell_command(cmd, inarg=None):
     r"""Run shell command and return the output (string) in a list
     """
     cmd = ' '.join(cmd.split())
-    if ' | ' in cmd: # Refer to: https://stackoverflow.com/a/13332300/12554945
+    if ' | ' in cmd:  # Refer to: https://stackoverflow.com/a/13332300/12554945
         cmds = cmd.split(' | ')
         assert len(cmds) == 2, "Only support one pipe now"
         fn = subprocess.Popen(cmds[0].split(), stdout=subprocess.PIPE)
@@ -226,7 +229,7 @@ class Logger(object):
         return CodeID
 
     def set_up_dir(self):
-        # Get rank for each process (used in multi-process training)
+        # Get rank for each process (used in multi-process training, e.g., DDP)
         if self.global_rank == -1:
             other_ranks_folder = ''
             rank = ''
@@ -252,7 +255,7 @@ class Logger(object):
             raise NotImplementedError  # resume a specific ExpID
 
         if project_path != '':
-            self.ExpID = parse_ExpID(project_path)  # Every experiment folder is binded with an ExpID
+            self.ExpID = parse_ExpID(project_path)  # Every experiment folder is bound with an ExpID
         else:
             server = 'SERVER%03d-' % int(self.userip.split('.')[-1])
             tz = timezone('EST')
@@ -275,6 +278,18 @@ class Logger(object):
         self.log_path = pjoin(project_path, self._log_dir)
         self.logplt_path = pjoin(self.log_path, "plot")
         self.logtxt_path = pjoin(self.log_path, "log.txt")
+
+        # Rename existing log txt files (log.txt will only store the newest log)
+        all_logtxts = [f for f in os.listdir(self.log_path) if re.match('log.*\.txt', f)]
+        all_logtxts = sorted(all_logtxts)  # e.g., ['log.txt', 'log_prior1.txt', 'log_prior2.txt']
+        for f in all_logtxts[::-1]:  # process the txts from the oldest to newest
+            if 'log_prior' in f:  # 'log_prior1.txt' --> 2
+                num = int( f.split('log_prior')[1].split('.txt')[0] ) + 1
+            else:
+                num = 1
+            new_f = f'log_prior{num}.txt'
+            os.rename(pjoin(self.log_path, f), pjoin(self.log_path, new_f))
+
         self._cache_path = pjoin(project_path, ".caches")
         mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self._cache_path, exist_ok=True)
 
