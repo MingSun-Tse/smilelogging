@@ -380,9 +380,11 @@ class Logger(object):
             msg = '  ' * int(self.ExpID[-1]) + msg  # Add blanks to acc lines for easier identification
 
         if not unprefix:
+            tz = timezone('EST')
+            now = datetime.now(tz).strftime("%Y/%m/%d-%H:%M:%S")
             prefix = "[%s %s %s] [%s] %s" % (self.ExpID[-6:],
                                              os.getpid(),
-                                             time.strftime("%Y/%m/%d-%H:%M:%S"),
+                                             now,
                                              callinfo,
                                              info)
             msg = prefix + msg
