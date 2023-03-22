@@ -16,10 +16,10 @@ from fnmatch import fnmatch
 
 import numpy as np
 import yaml
-from pytz import timezone
+import pytz
 
 pjoin = os.path.join
-
+tz = pytz.timezone('US/Eastern')
 
 def run_shell_command(cmd, inarg=None):
     r"""Run shell command and return the output (string) in a list
@@ -263,7 +263,6 @@ class Logger(object):
             self.ExpID = parse_ExpID(project_path)  # Every experiment folder is bound with an ExpID
         else:
             server = 'SERVER%03d-' % int(self.userip.split('.')[-1])
-            tz = timezone('EST')
             TimeID = datetime.now(tz).strftime("%Y%m%d-%H%M%S")
             self.ExpID = rank + server + TimeID
             project_path = "%s/%s/%s_%s" % (self._experiments_dir,
@@ -385,7 +384,6 @@ class Logger(object):
             msg = '  ' * int(self.ExpID[-1]) + msg  # Add blanks to acc lines for easier identification
 
         if not unprefix:
-            tz = timezone('EST')
             now = datetime.now(tz).strftime("%Y/%m/%d-%H:%M:%S")
             prefix = "[%s %s %s] [%s] %s" % (self.ExpID[-6:],
                                              os.getpid(),
