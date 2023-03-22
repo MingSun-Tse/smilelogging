@@ -287,15 +287,20 @@ class Logger(object):
         self.logtxt_path = pjoin(self.log_path, "log.txt")
 
         # Rename existing log txt files (log.txt will only store the newest log)
-        all_logtxts = [f for f in os.listdir(self.log_path) if re.match('log.*\.txt', f)]
-        all_logtxts = sorted(all_logtxts)  # e.g., ['log.txt', 'log_prior1.txt', 'log_prior2.txt']
-        for f in all_logtxts[::-1]:  # process the txts from the oldest to newest
-            if 'log_prior' in f:  # 'log_prior1.txt' --> 2
-                num = int(f.split('log_prior')[1].split('.txt')[0]) + 1
-            else:
-                num = 1
-            new_f = f'log_prior{num}.txt'
-            os.rename(pjoin(self.log_path, f), pjoin(self.log_path, new_f))
+        # all_logtxts = [f for f in os.listdir(self.log_path) if re.match('log.*\.txt', f)]
+        # all_logtxts = sorted(all_logtxts)  # e.g., ['log.txt', 'log_prior1.txt', 'log_prior2.txt']
+        # for f in all_logtxts[::-1]:  # process the txts from the oldest to newest
+        #     if 'log_prior' in f:  # 'log_prior1.txt' --> 2
+        #         num = int(f.split('log_prior')[1].split('.txt')[0]) + 1
+        #     else:
+        #         num = 1
+        #     new_f = f'log_prior{num}.txt'
+        #     os.rename(pjoin(self.log_path, f), pjoin(self.log_path, new_f))
+        if os.path.exists(self.logtxt_path):
+            timestamp = os.path.getmtime(self.logtxt_path)
+            timestamp = datetime.fromtimestamp(timestamp).strftime("lastmodified-%Y%m%d-%H%M%S")
+            new_f = pjoin(self.log_path, f"log_{timestamp}.txt")
+            os.rename(self.logtxt_path, new_f)
 
         # user can customize the folders in experiment dir
         if hasattr(self.args, 'hacksmile') and self.args.hacksmile.config:
