@@ -148,6 +148,8 @@ class Logger(object):
         self.overwrite_print = overwrite_print
         self.auto_resume = auto_resume
 
+        self.expname = self.args.project_name
+
         # logging folder names. Below are the default names, which can also be customized via 'args.hacksmile.config'
         self._experiments_dir = 'Experiments'
         self._debug_dir = 'Debug_Dir'
@@ -250,7 +252,7 @@ class Logger(object):
             # select the latest experiment folder
             exp_mark = f"%s/%s/%s_%sSERVER*" % (self._experiments_dir,
                                                 other_ranks_folder,
-                                                self.args.project_name,
+                                                self.expname,
                                                 rank)
             exps = glob.glob(exp_mark)
             if len(exps) > 0:
@@ -267,7 +269,7 @@ class Logger(object):
             self.ExpID = rank + server + TimeID
             project_path = "%s/%s/%s_%s" % (self._experiments_dir,
                                             other_ranks_folder,
-                                            self.args.project_name,
+                                            self.expname,
                                             self.ExpID)
 
         if self.args.debug:  # debug has the highest priority. If debug, all the things will be saved in Debug_dir
