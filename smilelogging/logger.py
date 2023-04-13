@@ -586,3 +586,7 @@ class Logger(object):
             if comment:
                 print('%s:' % comment, file=f)
             print('%s\n' % str(net), file=f, flush=True)
+
+    def timenow(self):
+        return datetime.now(tz).strftime("%Y/%m/%d-%H:%M:%S")
+
