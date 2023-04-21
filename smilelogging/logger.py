@@ -159,21 +159,9 @@ class Logger(object):
 
         self._figure_out_rank()
 
-        # customize logging folder names
-        if hasattr(args, 'hacksmile') and args.hacksmile.config:
-            for line in open(args.hacksmile.config):
-                line = line.strip()
-                if line.startswith('!reserve_dir'):
-                    pass
-                else:
-                    attr, value = [x.strip() for x in line.split(':')]
-                    self.__setattr__(attr, value)
-
         # Set up a unique experiment folder
         self.userip, self.hostname = self.get_userip()
         self.set_up_dir()
-        if self.global_rank in [-1, 0]:
-            self.set_up_cache_ignore()
         self.set_up_logtxt()
 
         # Set up logging utils
@@ -189,10 +177,8 @@ class Logger(object):
         self.save_args()  # to .yaml
         self.save_nvidia_smi()  # print GPU info
         self.save_git_status()
-        self.cache_done = False
-        if args.resume_TimeID == '' and self.global_rank in [-1, 0]:
-            self.cache_model()  # backup code
-        self.n_log_item = 0
+        if self.global_rank in [-1, 0]:  # only the main process does the caching job
+            self.cache_code()  # backup code
 
     def _figure_out_rank(self):
         # Get ranks from env
@@ -284,19 +270,13 @@ class Logger(object):
         self.log_path = pjoin(project_path, self._log_dir)
         self.logplt_path = pjoin(self.log_path, "plot")
         self._cache_path = pjoin(project_path, ".caches")
-        mkdirs(self.weights_path, self.gen_img_path, self.logplt_path, self._cache_path, exist_ok=True)
+        mkdirs(self.weights_path,
+               self.gen_img_path,
+               self.logplt_path,
+               self._cache_path,
+               exist_ok=True)
         self.logtxt_path = pjoin(self.log_path, "log.txt")
 
-        # Rename existing log txt files (log.txt will only store the newest log)
-        # all_logtxts = [f for f in os.listdir(self.log_path) if re.match('log.*\.txt', f)]
-        # all_logtxts = sorted(all_logtxts)  # e.g., ['log.txt', 'log_prior1.txt', 'log_prior2.txt']
-        # for f in all_logtxts[::-1]:  # process the txts from the oldest to newest
-        #     if 'log_prior' in f:  # 'log_prior1.txt' --> 2
-        #         num = int(f.split('log_prior')[1].split('.txt')[0]) + 1
-        #     else:
-        #         num = 1
-        #     new_f = f'log_prior{num}.txt'
-        #     os.rename(pjoin(self.log_path, f), pjoin(self.log_path, new_f))
         if os.path.exists(self.logtxt_path):
             timestamp = os.path.getmtime(self.logtxt_path)
             timestamp = datetime.fromtimestamp(timestamp).strftime("lastmodified-%Y%m%d-%H%M%S")
@@ -321,27 +301,6 @@ class Logger(object):
             sys.stderr = DoubleWriter(sys.stderr, self.logtxt)
             self.original_print = builtins.print  # Keep a copy of the original print fn
             builtins.print = self.print
-
-    def set_up_cache_ignore(self):
-        ignore_default = ['__pycache__', 'Experiments', 'Debug_Dir', '.git']
-
-        ignore_from_file = []
-        if os.path.isfile('.cache_ignore'):
-            for line in open('.cache_ignore'):
-                ignore_from_file += line.strip().split(',')
-
-        ignore_from_arg = []
-        if hasattr(self.args, 'cache_ignore') and self.args.cache_ignore:
-            ignore_from_arg += self.args.cache_ignore.split(',')  # TODO-@mst: Use ymal for config
-
-        ignore = ignore_default + ignore_from_file + ignore_from_arg
-        ignore = list(set(ignore))  # Remove repeated items
-
-        # If there is new cache_ignore, save it
-        if set(ignore) != set(ignore_from_file):
-            with open('.cache_ignore', 'w') as f:
-                f.write(','.join(ignore))
-        self.cache_ignore = ignore
 
     def print(self, *msg, sep=' ', end='\n', file=None, flush=False,
               callinfo=None, unprefix=False, acc=False, level=0, main_process_only=True):
@@ -498,7 +457,8 @@ class Logger(object):
             gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
             script += ' '.join(['CUDA_VISIBLE_DEVICES=%s python' % gpu_id, *sys.argv])
         else:
-            script += ' '.join(['python', *sys.argv])
+            program = 'python' if self.global_rank == -1 else 'OMP_NUM_THREADS=12 torchrun'
+            script += ' '.join([program, *sys.argv])
         script += '\n'
         self.print(script, unprefix=True)
 
@@ -534,41 +494,21 @@ class Logger(object):
     def plot(self, name, out_path):
         self.log_tracker.plot(name, out_path)
 
-    def cache_model(self):
-        r"""Save the modle architecture, loss, configs, in case of future check.
+    def cache_code(self):
+        r"""Back up the code
         """
-        if self.args.debug or self.args.no_cache or self.cache_done: return
+        if self.args.debug or self.args.no_cache:
+            return
 
-        t0 = time.time()
-        if not os.path.exists(self._cache_path):
-            os.makedirs(self._cache_path, exist_ok=True)
-        logtmp = f"==> Caching various config files to '{self._cache_path}'"
-        self.print(logtmp)
-
-        extensions = ['.py', '.json', '.yaml', '.sh', '.txt', '.md']  # files of these types will be cached
-
-        def copy_folder(folder_path):
-            for root, _, files in os.walk(folder_path):
-                if '__pycache__' in root: continue
-                for f in files:
-                    _, ext = os.path.splitext(f)
-                    if ext in extensions:
-                        dir_path = pjoin(self._cache_path, root)
-                        f_path = pjoin(root, f)
-                        if not os.path.exists(dir_path):
-                            os.makedirs(dir_path, exist_ok=True)
-                        if os.path.exists(f_path):
-                            sh.copy(f_path, dir_path)
-
-        # copy files in current dir
-        [sh.copy(f, self._cache_path) for f in os.listdir('.') if
-         os.path.isfile(f) and os.path.splitext(f)[1] in extensions]
-
-        # copy dirs in current dir
-        [copy_folder(d) for d in os.listdir('.') if os.path.isdir(d) and d not in self.cache_ignore]
-        logtmp = f'==> Caching done (time: {time.time() - t0:.2f}s)'
-        self.print(logtmp)
-        self.cache_done = True
+        cache_script = self.args.cache_code
+        if os.path.exists(cache_script):
+            t0 = time.time()
+            logtmp = f"==> Caching code to '{self._cache_path}' using the provided script {cache_script}"
+            self.print(logtmp)
+            cmd = f'sh {cache_script} {self._cache_path}'
+            os.system(cmd)
+            logtmp = f'==> Caching done (time: {time.time() - t0:.2f}s)'
+            self.print(logtmp)
 
     def get_project_name(self):
         ''' For example, 'Projects/FasterRCNN/logger.py', then return 'FasterRCNN' '''
