@@ -1,5 +1,7 @@
 from smilelogging.logger import Logger
+from smilelogging.utils import update_args
 import configargparse
+import functools
 
 argparser = configargparse.ArgumentParser()
 argparser.add_argument('--project_name',
@@ -10,10 +12,11 @@ argparser.add_argument('--project_name',
                        help='experiment name')
 argparser.add_argument('--experiments_dir',
                        type=str,
-                       default='Experiments')
+                       default='Experiments',
+                       help='name of the folder to store all experiments')
 argparser.add_argument('--debug',
                        action="store_true",
-                       help='if debugging, if so, all the logs will be saved to `Debug_Dir`')
+                       help='if so, all the logs will be saved to `Debug_Dir`')
 argparser.add_argument('--no_cache',
                        action='store_true',
                        help='not cache code')
@@ -31,4 +34,17 @@ argparser.add_argument('--sl.ON',
                        action='store_true')
 argparser.add_argument('--sl.config',
                        type=str,
-                       default='.smilelogging_cfg')
+                       default='.smilelogging_cfg',
+                       help='smilelogging config file, yaml, used for customizing smilelogging')
+
+def add_update_args(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        ret = fn(*args, **kwargs)
+        ret = update_args(ret)
+        return ret
+    return wrapper
+
+argparser.parse_args = add_update_args(argparser.parse_args)
+
+
