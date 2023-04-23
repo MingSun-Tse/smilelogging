@@ -148,7 +148,7 @@ class Logger(object):
         self.overwrite_print = overwrite_print
         self.auto_resume = auto_resume
 
-        self.expname = self.args.project_name
+        self.expname = self.args.experiment_name
 
         # logging folder names. Below are the default names, which can also be customized via 'args.hacksmile.config'
         self._experiments_dir = 'Experiments'
@@ -509,11 +509,6 @@ class Logger(object):
             os.system(cmd)
             logtmp = f'==> Caching done (time: {time.time() - t0:.2f}s)'
             self.print(logtmp)
-
-    def get_project_name(self):
-        ''' For example, 'Projects/FasterRCNN/logger.py', then return 'FasterRCNN' '''
-        file_path = os.path.abspath(__file__)
-        return file_path.split('/')[-2]
 
     def save_args(self):
         with open(pjoin(self.log_path, 'args.yaml'), 'w') as f:

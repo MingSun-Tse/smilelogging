@@ -2,11 +2,10 @@ from smilelogging.logger import Logger
 from smilelogging.utils import update_args
 import configargparse
 import functools
+import sys
 
 argparser = configargparse.ArgumentParser()
-argparser.add_argument('--project_name',
-                       '--experiment_name',
-                       dest='project_name',
+argparser.add_argument('--experiment_name',
                        type=str,
                        default='',
                        help='experiment name')
@@ -37,6 +36,11 @@ argparser.add_argument('--sl.config',
                        default='.smilelogging_cfg',
                        help='smilelogging config file, yaml, used for customizing smilelogging')
 
+def warn_deprecated_args(old, new):
+    if old in sys.argv:
+        print(f'[Smilelogging Error] {old} is deprecated now, please use {new} instead and rerun')
+        exit(0)
+
 def add_update_args(fn):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
@@ -45,6 +49,8 @@ def add_update_args(fn):
         return ret
     return wrapper
 
+warn_deprecated_args('--project_name', '--experiment_name')
+warn_deprecated_args('--project', '--experiment_name')
 argparser.parse_args = add_update_args(argparser.parse_args)
 
 
