@@ -457,7 +457,7 @@ class Logger(object):
             gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
             script += ' '.join(['CUDA_VISIBLE_DEVICES=%s python' % gpu_id, *sys.argv])
         else:
-            program = 'python' if self.global_rank == -1 else 'OMP_NUM_THREADS=12 torchrun'
+            program = 'python' if self.global_rank == -1 else 'OMP_NUM_THREADS=12 torchrun --nproc_per_node 8'
             script += ' '.join([program, *sys.argv])
         script += '\n'
         self.print(script, unprefix=True)
