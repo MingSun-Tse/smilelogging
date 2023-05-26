@@ -23,6 +23,9 @@ argparser.add_argument('--cache_code',
                        type=str,
                        default='scripts/cache_code.sh',
                        help='the script to cache code')
+argparser.add_argument('--no_scp',
+                       action='store_true',
+                       help='not scp experiment to hub')
 argparser.add_argument('--resume_TimeID',
                        type=str,
                        default='',
