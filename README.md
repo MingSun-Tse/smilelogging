@@ -3,6 +3,8 @@
 
 Python logging package for easy reproducible experimenting in research. Developed by the members of [SMILE Lab](https://web.northeastern.edu/smilelab/).
 
+_**[Update: 05/27/2023] 🔥🔥🔥Please install from source for the latest feature. The pip version is NOT the latest one and may have problems when using DDP.**_
+
 
 ## Why this package may help you
 This project is meant to provide an easy-to-use (as easy as possible) package to enable *reproducible* experimenting in research. Here is a struggling situation you may also encountered:

@@ -148,7 +148,7 @@ class Logger(object):
         self.overwrite_print = overwrite_print
         self.auto_resume = auto_resume
 
-        self.expname = self.args.project_name
+        self.expname = self.args.experiment_name
 
         # logging folder names. Below are the default names, which can also be customized via 'args.hacksmile.config'
         self._experiments_dir = 'Experiments'
@@ -193,7 +193,7 @@ class Logger(object):
         # Get ranks from args
         if hasattr(self.args, 'global_rank') and self.args.global_rank >= 0:
             self.global_rank = self.args.global_rank
-        if hasattr(self.args, 'local_rank') and self.args.global_rank >= 0:
+        if hasattr(self.args, 'local_rank') and self.args.local_rank >= 0:
             self.local_rank = self.args.local_rank
 
     def get_CodeID(self):
@@ -457,7 +457,7 @@ class Logger(object):
             gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
             script += ' '.join(['CUDA_VISIBLE_DEVICES=%s python' % gpu_id, *sys.argv])
         else:
-            program = 'python' if self.global_rank == -1 else 'OMP_NUM_THREADS=12 torchrun'
+            program = 'python' if self.global_rank == -1 else 'OMP_NUM_THREADS=12 torchrun --nproc_per_node 8'
             script += ' '.join([program, *sys.argv])
         script += '\n'
         self.print(script, unprefix=True)
