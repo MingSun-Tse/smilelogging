@@ -193,7 +193,7 @@ class Logger(object):
         # Get ranks from args
         if hasattr(self.args, 'global_rank') and self.args.global_rank >= 0:
             self.global_rank = self.args.global_rank
-        if hasattr(self.args, 'local_rank') and self.args.global_rank >= 0:
+        if hasattr(self.args, 'local_rank') and self.args.local_rank >= 0:
             self.local_rank = self.args.local_rank
 
     def get_CodeID(self):
@@ -457,7 +457,11 @@ class Logger(object):
             gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
             script += ' '.join(['CUDA_VISIBLE_DEVICES=%s python' % gpu_id, *sys.argv])
         else:
+<<<<<<< HEAD
+            program = 'python' if self.global_rank == -1 else 'OMP_NUM_THREADS=12 torchrun'
+=======
             program = 'python' if self.global_rank == -1 else 'OMP_NUM_THREADS=12 torchrun --nproc_per_node 8'
+>>>>>>> 43008808b2fa795d598e9fb3632d836fa650cf19
             script += ' '.join([program, *sys.argv])
         script += '\n'
         self.print(script, unprefix=True)
@@ -509,6 +513,14 @@ class Logger(object):
             os.system(cmd)
             logtmp = f'==> Caching done (time: {time.time() - t0:.2f}s)'
             self.print(logtmp)
+<<<<<<< HEAD
+
+    def get_project_name(self):
+        ''' For example, 'Projects/FasterRCNN/logger.py', then return 'FasterRCNN' '''
+        file_path = os.path.abspath(__file__)
+        return file_path.split('/')[-2]
+=======
+>>>>>>> 43008808b2fa795d598e9fb3632d836fa650cf19
 
     def save_args(self):
         with open(pjoin(self.log_path, 'args.yaml'), 'w') as f:
