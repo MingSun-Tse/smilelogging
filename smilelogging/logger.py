@@ -149,6 +149,7 @@ class Logger(object):
         self.auto_resume = auto_resume
 
         self.expname = self.args.experiment_name
+        self.debug = self.args.debug or 'debug' in self.expname.lower()
 
         # logging folder names. Below are the default names, which can also be customized via 'args.hacksmile.config'
         self._experiments_dir = 'Experiments'
@@ -346,11 +347,9 @@ class Logger(object):
 
         if not unprefix:
             now = datetime.now(tz).strftime("%Y/%m/%d-%H:%M:%S")
-            prefix = "[%s %s %s] [%s] %s" % (self.ExpID[-6:],
-                                             os.getpid(),
-                                             now,
-                                             callinfo,
-                                             info)
+            prefix = "[%s %s %s] %s" % (self.ExpID[-6:], os.getpid(), now, info)
+            if self.debug:
+                prefix = "[%s %s %s] [%s] %s" % (self.ExpID[-6:], os.getpid(), now, callinfo, info)
             msg = prefix + msg
 
         # Print
