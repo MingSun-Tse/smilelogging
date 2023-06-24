@@ -1,30 +1,39 @@
-import os, sys
-import numpy as np
+import os
 import socket
 
+
 def get_exp_name_id(exp_path):
-    r"""arg example: Experiments/kd-vgg13vgg8-cifar100-Temp40_SERVER5-20200727-220318
+    r"""arg examples: Experiments/kd-vgg13vgg8-cifar100-Temp40_SERVER5-20200727-220318
             or kd-vgg13vgg8-cifar100-Temp40_SERVER5-20200727-220318
             or Experiments/kd-vgg13vgg8-cifar100-Temp40_SERVER5-20200727-220318/weights/ckpt.pth
+            or PruneCnst_AlignCnst__PR0.875__ddprun_RANK0-SERVER196-20230614-194146
+    Args:
+        exp_path: experiment path (can be the experiment folder or a ckpt)
+    Returns:
+        ExpID: SERVER5-20200727-220318
+        expid: 220318
+        expname: kd-vgg13vgg8-cifar100-Temp40
+        date: 20200727
     """
     seps = exp_path.split(os.sep)
     try:
         for s in seps:
-            if '_SERVER' in s:
-                exp_id = s.split('-')[-1]
-                assert exp_id.isdigit()
-                ExpID = 'SERVER' + s.split('_SERVER')[1]
-                exp_name = s.split('_SERVER')[0]
+            if 'SERVER' in s:
+                expid = s.split('-')[-1]
+                assert expid.isdigit()
+                ExpID = 'SERVER' + s.split('SERVER')[1]
+                expname = s.split('_RANK')[0] if '_RANK' in s else s.split('_SEVER')[0]
                 date = s.split('-')[-2]
     except:
         print(f'Failed to parse "{exp_path}", please check')
         exit(0)
-    return ExpID, exp_id, exp_name, date
+    return ExpID, expid, expname, date
+
 
 def standardize_metricline(line):
     r"""Make metric line in standard form.
     """
-    for m in ['(', ')', '[', ']', '<', '>', '|', ',', ';', '!', '?',]: # Some non-numerical, no-meaning marks
+    for m in ['(', ')', '[', ']', '<', '>', '|', ',', ';', '!', '?', ]:  # Some non-numerical, no-meaning marks
         if m in line:
             line = line.replace(m, f' {m} ')
     if ':' in line:
@@ -32,21 +41,23 @@ def standardize_metricline(line):
     line = ' '.join(line.split())
     return line
 
+
 def get_value(line, key, type_func=float):
     r"""Get the value of a <key> in <line> in a log txt.
     """
     # Preprocessing to deal with some unstandard log format
     line = standardize_metricline(line)
     # print(line)
-        
+
     value = line.split(f' {key} ')[1].strip().split()[0]
     # print('get_value debug', value, line)
-    
+
     if value.endswith('%'):
         value = type_func(value[:-1]) / 100.
     else:
         value = type_func(value)
     return value
+
 
 def replace_value(line, key, new_value):
     line = standardize_metricline(line)
@@ -54,10 +65,12 @@ def replace_value(line, key, new_value):
     line = line.replace(f' {key} {value} ', f' {key} {new_value} ')
     return line
 
+
 def get_project_name():
     cwd = os.getcwd()
     # assert '/Projects/' in cwd
     return cwd.split(os.sep)[-1]
+
 
 # acc line example: Acc1 71.1200 Acc5 90.3800 Epoch 840 (after update) lr 5.0000000000000016e-05 (Best_Acc1 71.3500 @ Epoch 817)
 # acc line example: Acc1 0.9195 @ Step 46600 (Best = 0.9208 @ Step 38200) lr 0.0001
@@ -71,7 +84,8 @@ def is_metric_line(line, mark=''):
         return mark in line
     else:
         line = line.lower()
-        return "acc" in line and "best" in line and '@' in line and 'lr' in line and 'resume' not in line and 'finetune' not in line
+        return "acc" in line and "best" in line and 'lr' in line \
+               and 'resume' not in line and 'finetune' not in line
 
 
 def parse_metric(line, metric, scale=1.):
@@ -87,14 +101,14 @@ def parse_metric(line, metric, scale=1.):
 
     # Get the best metric
     try:
-        if f'Best {metric}' in line: # previous impl.
+        if f'Best {metric}' in line:  # previous impl.
             metric_b = get_value(line, f'Best {metric}')
         elif f'Best_{metric}' in line:
             metric_b = get_value(line, f'Best_{metric}')
         elif f'Best{metric}' in line:
             metric_b = get_value(line, f'Best{metric}')
         else:
-            metric_b = -1 # Not found the best metric value (not written in log)
+            metric_b = -1  # Not found the best metric value (not written in log)
     except:
         print(f'Parsing best metric failed; please check! The line is "{line}"')
         exit(1)
@@ -122,8 +136,10 @@ def parse_finish_time(log_f):
     for k in range(1, min(1000, len(lines))):
         line = lines[-k].lower()
         if '(speed:' in line and 'per timing, total_time:' in line:
-            finish_time = lines[-k].split('(speed:')[0].split()[-1].strip() # example: predicted finish time: 2020/10/25-08:21 (speed: 314.98s per timing)
+            finish_time = lines[-k].split('(speed:')[0].split()[
+                -1].strip()  # example: predicted finish time: 2020/10/25-08:21 (speed: 314.98s per timing)
             return finish_time
+
 
 def get_ip():
     # Get IP address. Refer to: https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
