@@ -22,7 +22,7 @@ def get_exp_name_id(exp_path):
                 expid = s.split('-')[-1]
                 assert expid.isdigit()
                 ExpID = 'SERVER' + s.split('SERVER')[1]
-                expname = s.split('_RANK')[0] if '_RANK' in s else s.split('_SEVER')[0]
+                expname = s.split('-SERVER')[0] if '_RANK' in s else s.split('_SERVER')[0]
                 date = s.split('-')[-2]
     except:
         print(f'Failed to parse "{exp_path}", please check')

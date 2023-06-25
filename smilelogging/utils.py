@@ -1502,29 +1502,3 @@ def scp_experiment_v2(logger, args, scp_script='scripts/scp_experiments_to_hub.s
             if not os.path.exists(f'{experiments_dir}/Trash'):
                 os.makedirs(f'{experiments_dir}/Trash')
             os.system(f'mv {experiments_dir}/{exp_name}_{ExpID} {experiments_dir}/Trash')
-
-
-def poly_schedule(x: int,
-                  x_max: int,
-                  y_max: float,
-                  p: float,
-                  x_reserve: bool = False,
-                  y_reserve: bool = False,
-                  ) -> float:
-    r"""A poly scheduling function: y = A * x^p
-
-    Args:
-        `x` and `y` starts from 0.
-
-    Returns:
-        a float (y).
-    """
-    assert x_max > 0  # for / max
-    A = y_max / pow(x_max, p)
-    y = A * pow(x, p)
-
-    if y_reserve:
-        y = y_max - y
-    if x_reserve:
-        raise NotImplementedError
-    return y
