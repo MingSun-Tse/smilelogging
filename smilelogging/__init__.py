@@ -3,8 +3,7 @@ import functools
 import sys
 
 from smilelogging.logger import Logger
-from smilelogging.utils import update_args
-
+from smilelogging.slutils import update_args, red, green, yellow, blue
 
 argparser = configargparse.ArgumentParser()
 argparser.add_argument('--experiment_name',

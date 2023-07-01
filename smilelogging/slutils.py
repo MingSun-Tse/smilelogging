@@ -1,5 +1,9 @@
 import os
 import socket
+import copy
+
+from colorama import init, Fore, Back, Style  # Need to pip install colorama first
+init()  # Initialize colorama
 
 
 def get_exp_name_id(exp_path):
@@ -148,3 +152,38 @@ def get_ip():
     ip = s.getsockname()[0]
     s.close()
     return ip
+
+def update_args(args):
+    """Update arguments of configargparse
+    """
+    arg_dict = copy.deepcopy(args.__dict__)
+    for k, v in arg_dict.items():
+        if '.' in k:  # TODO-@mst: hardcode pattern, may be risky
+            module, arg = k.split('.')  # e.g., "deepmixup.depth"
+            if arg_dict[f'{module}.ON']:  # this module is being used
+                if not hasattr(args, module):
+                    args.__setattr__(module, EmptyClass())  # set to a blank class
+                args.__dict__[module].__dict__[arg] = v  # args.'deepmixup.depth' = 10 --> args.deepmixup.depth = 10
+            args.__delattr__(k)
+    return args
+
+
+def red(*msg, sep=','):
+    """Wrap log string with red color"""
+    msg = sep.join([str(x) for x in msg])
+    return Fore.RED + msg + Style.RESET_ALL
+
+def green(*msg, sep=','):
+    """Wrap log string with green color"""
+    msg = sep.join([str(x) for x in msg])
+    return Fore.GREEN + msg + Style.RESET_ALL
+
+def yellow(*msg, sep=','):
+    """Wrap log string with yellow color"""
+    msg = sep.join([str(x) for x in msg])
+    return Fore.YELLOW + msg + Style.RESET_ALL
+
+def blue(*msg, sep=','):
+    """Wrap log string with blue color"""
+    msg = sep.join([str(x) for x in msg])
+    return Fore.BLUE + msg + Style.RESET_ALL

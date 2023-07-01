@@ -1,10 +1,7 @@
 import builtins
-import getpass
 import glob
 import logging
 import os
-import re
-import shutil as sh
 import socket
 import subprocess
 import sys
@@ -13,16 +10,25 @@ import traceback
 from collections import OrderedDict
 from datetime import datetime
 from fnmatch import fnmatch
+import getpass
 
 import numpy as np
 import yaml
 import pytz
 
+from smilelogging.slutils import red, green, yellow, blue
+
 pjoin = os.path.join
 tz = pytz.timezone('US/Eastern')
 
-def run_shell_command(cmd, inarg=None):
-    r"""Run shell command and return the output (string) in a list
+
+def run_shell_command(cmd):
+    r"""Run shell command and return the output (string) in a list.
+    Args:
+        cmd: shell command
+
+    Returns:
+        result: a list of the output returned by that shell command
     """
     cmd = ' '.join(cmd.split())
     if ' | ' in cmd:  # Refer to: https://stackoverflow.com/a/13332300/12554945
@@ -32,7 +38,8 @@ def run_shell_command(cmd, inarg=None):
         result = subprocess.run(cmds[1].split(), stdin=fn.stdout, stdout=subprocess.PIPE)
     else:
         result = subprocess.run(cmd.split(), stdout=subprocess.PIPE)
-    return result.stdout.decode('utf-8').strip().split('\n')
+    result = result.stdout.decode('utf-8').strip().split('\n')
+    return result
 
 
 def moving_average(x, N=10):
@@ -49,10 +56,10 @@ def get_project_path(ExpID):
 
 
 def parse_ExpID(path):
-    '''parse out the ExpID from 'path', which can be a file or directory.
-    Example: Experiments/AE__ckpt_epoch_240.pth__LR1.5__originallabel__vgg13_SERVER138-20200829-202307/gen_img
-    Example: Experiments/AE__ckpt_epoch_240.pth__LR1.5__originallabel__vgg13_SERVER-20200829-202307/gen_img
-    '''
+    """parse out the ExpID from 'path', which can be a file or directory.
+        Example: Experiments/AE__ckpt_epoch_240.pth__LR1.5__originallabel__vgg13_SERVER138-20200829-202307/gen_img
+        Example: Experiments/AE__ckpt_epoch_240.pth__LR1.5__originallabel__vgg13_SERVER-20200829-202307/gen_img
+    """
     rank = ''
     if 'RANK' in path:
         rank = path.split('RANK')[1].split('-')[0]
@@ -66,7 +73,7 @@ def mkdirs(*paths, exist_ok=False):
         os.makedirs(p, mode=0o777, exist_ok=exist_ok)  # 777 mode may not be safe but easy for now
 
 
-class DoubleWriter():
+class DoubleWriter:
     def __init__(self, f1, f2):
         self.f1, self.f2 = f1, f2
 
@@ -213,7 +220,8 @@ class Logger(object):
                         '.slurm'):  # Not consider shell script change as a formal change
                     new_real_change = True
             if new_real_change:
-                logtmp = "Warning! There is (at least) one uncommitted change in your code. Recommended to git commit it first"
+                logtmp = "Warning! There is (at least) one uncommitted change in your code. " \
+                         "Recommended to git commit it first"
                 self.print(logtmp)
                 time.sleep(3)
         else:
@@ -284,17 +292,6 @@ class Logger(object):
             new_f = pjoin(self.log_path, f"log_{timestamp}.txt")
             os.rename(self.logtxt_path, new_f)
 
-        # user can customize the folders in experiment dir
-        if hasattr(self.args, 'hacksmile') and self.args.hacksmile.config:
-            for line in open(self.args.hacksmile.config):
-                line = line.strip()
-                if line.startswith('!reserve_dir'):  # example: !reserve_dir: misc_results
-                    assert len(line.split(':')) == 2, f"There should be only one ':' in the line. Please check: f{line}"
-                    dir_name = line.split(':')[1].strip()
-                    dir_path = f'{self.exp_path}/{dir_name}'
-                    mkdirs(dir_path)
-                    self.__setattr__(dir_name.replace('/', '__'), dir_path)
-
     def set_up_logtxt(self):
         self.logtxt = open(self.logtxt_path, "a+")
         # Globally redirect stderr and stdout. Overwriting the builtins.print fn may not be the best way to do so.
@@ -304,7 +301,7 @@ class Logger(object):
             builtins.print = self.print
 
     def print(self, *msg, sep=' ', end='\n', file=None, flush=False,
-              callinfo=None, unprefix=False, acc=False, level=0, main_process_only=True):
+              callinfo=None, unprefix=False, acc=False, level=0, main_process_only=True, color=None):
         r"""Replace the standard print func. Print to console and logtxt file.
         """
         if main_process_only:
@@ -322,23 +319,22 @@ class Logger(object):
             linenum = sys._getframe().f_back.f_lineno
             callinfo = f'{filename}:{linenum}'
 
-        # Get the level info
+        # Get the level info: https://docs.python.org/3/library/logging.html#levels
         level = str(level).lower()
         assert level in ['0', '10', '20', '30', '40', '50',
                          'notset', 'debug', 'info', 'warning', 'error', 'critical']
-        # See https://docs.python.org/3/library/logging.html#levels
         if level in ['0', 'notset']:
             info = ''
         elif level in ['10', 'debug']:
-            info = '[DEBUG] '
+            info = yellow('[Debug] ')
         elif level in ['20', 'info']:
             info = ''
         elif level in ['30', 'warning']:
-            info = '[WARNING] '
+            info = yellow('[Warning] ')
         elif level in ['40', 'error']:
-            info = '[ERROR] '
+            info = red('[Error] ')
         elif level in ['50', 'critical']:
-            info = '[CRITICAL] '
+            info = red('[Critical] ')
 
         # Get the final message to print
         msg = sep.join([str(m) for m in msg]) + end
@@ -350,6 +346,20 @@ class Logger(object):
             prefix = "[%s %s %s] %s" % (self.ExpID[-6:], os.getpid(), now, info)
             if self.debug:
                 prefix = "[%s %s %s] [%s] %s" % (self.ExpID[-6:], os.getpid(), now, callinfo, info)
+            prefix = blue(prefix)  # Render prefix with blue color
+
+            # Render msg with colors
+            if color is not None:
+                if color in ['green', 'g']:
+                    msg = green(msg)
+                elif color in ['red', 'r']:
+                    msg = red(msg)
+                elif color in ['blue', 'b']:
+                    msg = blue(msg)
+                elif color in ['yellow', 'y']:
+                    msg = yellow(msg)
+                else:
+                    raise NotImplementedError
             msg = prefix + msg
 
         # Print
@@ -382,7 +392,7 @@ class Logger(object):
         self._logger.addHandler(ch)
 
     def info(self, *msg, sep=' ', end='\n', file=None, flush=False,
-             unprefix=False, acc=False, main_process_only=True):
+             unprefix=False, acc=False, main_process_only=True, color=None):
         r"""Reload logger.info in python logging
         """
         result = traceback.extract_stack()
@@ -396,15 +406,15 @@ class Logger(object):
 
         self.print(*msg, sep=sep, end=end, file=file, flush=flush,
                    callinfo=callinfo, unprefix=unprefix, acc=acc, level='info',
-                   main_process_only=main_process_only)
+                   main_process_only=main_process_only, color=color)
 
     def warn(self, *msg, sep=' ', end='\n', file=None, flush=False,
-             unprefix=False, acc=False, main_process_only=True):
+             unprefix=False, acc=False, main_process_only=True, color=None):
         """Reload logger.warn in python logging
         """
         self.print(*msg, sep=sep, end=end, file=file, flush=flush,
                    unprefix=unprefix, acc=acc, level='warning',
-                   main_process_only=main_process_only)
+                   main_process_only=main_process_only, color='yellow')
 
     def print_v2(self, *value, sep=' ', end='\n', file=None, flush=False, unprefix=False, acc=False, level='info'):
         r"""Replace the standard print func. Print to console and logtxt file.
@@ -528,4 +538,3 @@ class Logger(object):
 
     def timenow(self):
         return datetime.now(tz).strftime("%Y/%m/%d-%H:%M:%S")
-

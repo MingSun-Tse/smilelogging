@@ -1,16 +1,21 @@
+import time
+import os
+import copy
+from collections import OrderedDict
+import glob
+import pickle
+import subprocess
+import functools
+
+import numpy as np
+from PIL import Image
+
 import torch
 import torch.nn as nn
 import torch.nn.init as init
 from torch.utils.data import Dataset
 import torch.nn.functional as F
 from torch.autograd import Variable
-import time, os, copy, numpy as np
-from collections import OrderedDict
-import glob
-import pickle
-import subprocess
-import functools
-from PIL import Image
 
 
 def _weights_init(m):
@@ -124,7 +129,7 @@ def get_n_params(model):
 def get_n_params_(model, sparse=False):
     n_params = 0
     LEARNABLES = (nn.Conv1d, nn.Conv2d, nn.Conv3d, nn.Linear)  # Only consider Conv2d and Linear, no BN
-    print(f'The following layers are accounted for: {[x.__name__ for x in LEARNABLES]}')
+    print(f'The following learnable_layers are accounted for: {[x.__name__ for x in LEARNABLES]}')
     for _, module in model.named_modules():
         if isinstance(module, LEARNABLES):
             n_params += module.weight.numel()
@@ -252,7 +257,7 @@ def get_n_flops(model=None, input_res=224, multiply_adds=True, n_channel=3):
 
 # The above version is redundant. Get a neat version as follow.
 def get_n_flops_(model=None, img_size=(224, 224), n_channel=3, count_adds=True, input=None, **kwargs):
-    '''Only count the FLOPs of conv and linear layers (no BN layers etc.). 
+    '''Only count the FLOPs of conv and linear learnable_layers (no BN learnable_layers etc.).
     Only count the weight computation (bias not included since it is negligible)
     '''
     if hasattr(img_size, '__len__'):
@@ -721,7 +726,7 @@ def get_layer_by_index(net, index):
 
 def get_total_index_by_learnable_index(net, learnable_index):
     '''
-        learnable_index: index when only counting learnable layers (conv or fc, no bn);
+        learnable_index: index when only counting learnable learnable_layers (conv or fc, no bn);
         total_index: count relu, pooling etc in.
     '''
     layer_type_considered = [nn.Conv2d, nn.ReLU, nn.LeakyReLU, nn.PReLU,
