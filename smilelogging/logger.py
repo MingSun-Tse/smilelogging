@@ -166,6 +166,7 @@ class Logger(object):
         self._log_dir = 'log'
 
         self._figure_out_rank()
+        self.ddp = self.global_rank >= 0
 
         # Set up a unique experiment folder
         self.userip, self.hostname = self.get_userip()
@@ -189,7 +190,6 @@ class Logger(object):
             self.cache_code()  # backup code
 
     def _figure_out_rank(self):
-        # Get ranks from env
         global_rank = os.getenv('GLOBAL_RANK', -1)
         local_rank = os.getenv('LOCAL_RANK', -1)
         if local_rank != -1:  # DDP is used
@@ -462,12 +462,14 @@ class Logger(object):
     def print_script(self):
         script = f'hostname: {self.hostname}  userip: {self.userip}\n'
         script += 'cd %s\n' % os.path.abspath(os.getcwd())
-        if 'CUDA_VISIBLE_DEVICES' in os.environ:
+        if self.ddp:
+            program = 'OMP_NUM_THREADS=12 MKL_SERVICE_FORCE_INTEL=1 CUDA_VISIBLE_DEVICES=<ToAdd> ' \
+                      'python -m torch.distributed.run --nproc_per_node <ToAdd>'
+            script += ' '.join([program, *sys.argv])
+        else:
             gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
             script += ' '.join(['CUDA_VISIBLE_DEVICES=%s python' % gpu_id, *sys.argv])
-        else:
-            program = 'python' if self.global_rank == -1 else 'OMP_NUM_THREADS=12 torchrun --nproc_per_node 8'
-            script += ' '.join([program, *sys.argv])
+        script = yellow(script)
         script += '\n'
         self.print(script, unprefix=True)
 
