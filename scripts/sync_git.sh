@@ -1,1 +1,1 @@
-../../ScriptsTools/auto_distribute_jobs/sync_git.sh
+../../ScriptsTools/auto_experimenting/sync_git.sh
