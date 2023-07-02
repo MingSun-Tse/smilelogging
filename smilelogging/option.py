@@ -42,7 +42,7 @@ parser.add_argument('--out_plot_path', type=str,
                     default='plot.jpg')
 args = parser.parse_args()
 
-print(yellow(args.__dict__), today)
+print(yellow(args.__dict__), '\n')
 
 # 1st filtering: get all the exps with the keyword
 all_exps = [x for x in glob.glob(f'{args.exps_folder}/{args.kw}') if os.path.isdir(x) and 'SERVER' in x]
