@@ -1,6 +1,7 @@
 import os
 import socket
 import copy
+import re
 
 from colorama import init, Fore, Back, Style  # Need to pip install colorama first
 init()  # Initialize colorama
@@ -34,9 +35,20 @@ def get_exp_name_id(exp_path):
     return ExpID, expid, expname, date
 
 
+def clean_colored_text(logs):
+    # Define the pattern to match the escape sequences
+    pattern = r'\x1b\[[0-9;]*[m]'
+
+    # Use regex to find and remove escape sequences from the logs
+    cleaned_logs = re.sub(pattern, '', logs)
+
+    return cleaned_logs
+
+
 def standardize_metricline(line):
     r"""Make metric line in standard form.
     """
+    line = clean_colored_text(line)
     for m in ['(', ')', '[', ']', '<', '>', '|', ',', ';', '!', '?', ]:  # Some non-numerical, no-meaning marks
         if m in line:
             line = line.replace(m, f' {m} ')
