@@ -15,6 +15,7 @@ import getpass
 import numpy as np
 import yaml
 import pytz
+import pynvml
 
 from smilelogging.slutils import red, green, yellow, blue
 
@@ -467,7 +468,12 @@ class Logger(object):
                       'python -m torch.distributed.run --nproc_per_node <ToAdd>'
             script += ' '.join([program, *sys.argv])
         else:
-            gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
+            if 'CUDA_VISIBLE_DEVICES' in os.environ:
+                gpu_id = os.environ['CUDA_VISIBLE_DEVICES']
+            else:
+                pynvml.nvmlInit()
+                num_total_gpus = pynvml.nvmlDeviceGetCount()
+                gpu_id = ','.join([str(x) for x in range(num_total_gpus)])
             script += ' '.join(['CUDA_VISIBLE_DEVICES=%s python' % gpu_id, *sys.argv])
         script = yellow(script)
         script += '\n'
