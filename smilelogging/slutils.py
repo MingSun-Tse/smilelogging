@@ -165,6 +165,9 @@ def get_ip():
     s.close()
     return ip
 
+class EmptyClass():
+    pass
+
 def update_args(args):
     """Update arguments of configargparse
     """
