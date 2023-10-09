@@ -4,6 +4,7 @@ import copy
 import re
 
 from colorama import init, Fore, Back, Style  # Need to pip install colorama first
+
 init()  # Initialize colorama
 
 
@@ -61,12 +62,14 @@ def standardize_metricline(line):
 def get_value(line, key, type_func=float):
     r"""Get the value of a <key> in <line> in a log txt.
     """
-    # Preprocessing to deal with some unstandard log format
+    # Preprocessing to deal with some non-standard log format
     line = standardize_metricline(line)
-    # print(line)
 
     value = line.split(f' {key} ')[1].strip().split()[0]
-    # print('get_value debug', value, line)
+
+    # Manually fix some problems.
+    if '/' in value:  # E.g., Epoch 199/200
+        value = value.split('/')[0]
 
     if value.endswith('%'):
         value = type_func(value[:-1]) / 100.
@@ -165,8 +168,10 @@ def get_ip():
     s.close()
     return ip
 
+
 class EmptyClass():
     pass
+
 
 def update_args(args):
     """Update arguments of configargparse
@@ -188,15 +193,18 @@ def red(*msg, sep=','):
     msg = sep.join([str(x) for x in msg])
     return Fore.RED + msg + Style.RESET_ALL
 
+
 def green(*msg, sep=','):
     """Wrap log string with green color"""
     msg = sep.join([str(x) for x in msg])
     return Fore.GREEN + msg + Style.RESET_ALL
 
+
 def yellow(*msg, sep=','):
     """Wrap log string with yellow color"""
     msg = sep.join([str(x) for x in msg])
     return Fore.YELLOW + msg + Style.RESET_ALL
+
 
 def blue(*msg, sep=','):
     """Wrap log string with blue color"""
