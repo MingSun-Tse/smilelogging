@@ -137,3 +137,4 @@ test_example/Debug_Dir
 test_example/Experiments
 test_example/.script_history
 smilelogging/ScriptsTools
+.DS_Store
