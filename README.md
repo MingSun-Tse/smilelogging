@@ -3,9 +3,6 @@
 
 Python logging package for easy reproducible experimenting in research. Developed by the members of [SMILE Lab](https://web.northeastern.edu/smilelab/).
 
-_**[Update: 05/27/2023] 🔥🔥🔥Please install from source for the latest feature. The pip version is NOT the latest one and may have problems when using DDP.**_
-
-
 ## Why this package may help you
 This project is meant to provide an easy-to-use (as easy as possible) package to enable *reproducible* experimenting in research. Here is a struggling situation you may also encountered:
 > I am doing some project. I got a fatanstic idea some time (one week, one month, or even one year) ago. Now I am looking at the results of that experiment, but I just cannot reproduce them anymore. I cannot remember which script and what hyper-prarameters I used. Even worse, since then I've modified the code (a lot). I don't know where I messed it up ...:cold_sweat:
