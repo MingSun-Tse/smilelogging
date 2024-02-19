@@ -24,7 +24,7 @@ tz = pytz.timezone("US/Eastern")
 
 
 def run_shell_command(cmd):
-    r"""Run shell command and return the output (string) in a list.
+    """Run shell command and return the output (string) in a list.
     Args:
         cmd: shell command
 
@@ -46,13 +46,13 @@ def run_shell_command(cmd):
 
 
 def moving_average(x, N=10):
-    r"""Refer to: https://stackoverflow.com/questions/13728392/moving-average-or-running-mean"""
+    """Refer to: https://stackoverflow.com/questions/13728392/moving-average-or-running-mean"""
     import scipy.ndimage as ndi
 
     return ndi.uniform_filter1d(x, N, mode="constant", origin=-(N // 2))[: -(N - 1)]
 
 
-def get_project_path(ExpID):
+def get_experiment_path(ExpID):
     full_path = glob.glob("Experiments/*%s*" % ExpID)
     assert (
         len(full_path) == 1
@@ -94,14 +94,14 @@ class DoubleWriter:
 
 
 class LogTracker:
-    r"""Logging all numerical results."""
+    """Logging all numerical results."""
 
     def __init__(self):
         self._metrics = OrderedDict()
         self._print_format = {}
 
     def update(self, k, v):
-        r""" """
+        """ """
         if ":" in k:
             k, format_ = k.split(":")
             self._print_format[k] = format_
@@ -121,7 +121,7 @@ class LogTracker:
             return self._metrics
 
     def format(self, selected=None, not_selected=None, sep=" "):
-        r"""Format for print."""
+        """Format for print."""
         logstr = []
         for k, v in self._metrics.items():
             in_selected = True
@@ -145,35 +145,33 @@ class LogTracker:
         return sep.join(logstr)
 
     def get_ma(self, k, window=10):
-        r"""Moving average."""
+        """Moving average."""
         return moving_average(self._metrics[k], window)
 
 
 class Logger(object):
     passer = {}
 
-    def __init__(self, args, overwrite_print=False, auto_resume=False):
+    def __init__(self, args, overwrite_print=False):
         self.args = args
-        self.sl_cfg = ".smilelogging.cfg"
         self.overwrite_print = overwrite_print
-        self.auto_resume = auto_resume
-
         self.expname = self.args.experiment_name
         self.debug = self.args.debug or "debug" in self.expname.lower()
 
-        # logging folder names. Below are the default names, which can also be customized via 'args.hacksmile.config'
-        self._experiments_dir = "Experiments"
+        # Logging folder names.
+        self._experiments_dir = args.experiments_dir
         self._debug_dir = "Debug_Dir"
         self._weights_dir = "weights"
         self._gen_img_dir = "gen_img"
         self._log_dir = "log"
 
+        # Handle the DDP case.
         self._figure_out_rank()
         self.ddp = self.global_rank >= 0
 
-        # Set up a unique experiment folder
+        # Set up a unique experiment folder.
         self.userip, self.hostname = self.get_userip()
-        self.set_up_dir()
+        self.set_up_experiment_dir()
         self.set_up_logtxt()
 
         # Set up logging utils
@@ -184,7 +182,7 @@ class Logger(object):
         self.print_script()
         args.CodeID = (
             self.get_CodeID()
-        )  # get CodeID before 'print_args()' because it will be printed in log
+        )  # get CodeID before 'print_args()' because it will be printed in log.
         self.print_args()
 
         # Cache misc environment info  (e.g., GPU, git, etc.) and code files
@@ -209,8 +207,12 @@ class Logger(object):
         if hasattr(self.args, "local_rank") and self.args.local_rank >= 0:
             self.local_rank = self.args.local_rank
 
-    def get_CodeID(self):
-        r"""Return git commit ID as CodeID"""
+    def get_CodeID(self) -> str:
+        """Return git commit ID as CodeID.
+
+        Returns:
+            CodeID: A string that indicates the git commit ID.
+        """
         git_check = run_shell_command("git rev-parse --is-inside-work-tree")
         self.use_git = len(git_check) == 1 and git_check[0] == "true"
         self.git_root = run_shell_command("git rev-parse --show-toplevel")[
@@ -239,8 +241,33 @@ class Logger(object):
             self.print(logtmp)
         return CodeID
 
-    def set_up_dir(self):
-        # Get rank for each process (used in multi-process training, e.g., DDP)
+    def _get_time_id(self) -> str:
+        """Get time stamp for the experiment folder name. The expid must be unique.
+
+        Returns:
+            time_id: A string that indicates the time stamp of the experiment.
+        """
+        time_id = datetime.now(tz).strftime("%Y%m%d-%H%M%S")
+        expid = time_id[-6:]
+        existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
+        t0 = time.time()
+        # Make sure the expid is unique.
+        while len(existing_exps) > 0:
+            time.sleep(1)
+            time_id = datetime.now(tz).strftime("%Y%m%d-%H%M%S")
+            expid = time_id[-6:]
+            existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
+            if time.time() - t0 > 120:
+                self.print(
+                    "Hanged for more than 2 mins when creating the experiment folder, "
+                    "which is unusual. Please try again."
+                )
+                exit(1)
+        return time_id
+
+    def _get_experiment_path(self):
+        """Get a unique directory for each experiment."""
+        # Get rank for each process (used in multi-process training, e.g., DDP).
         if self.global_rank == -1:
             other_ranks_folder = ""
             rank = ""
@@ -248,34 +275,32 @@ class Logger(object):
             other_ranks_folder = "" if self.global_rank == 0 else "OtherRanks"
             rank = f"RANK{self.global_rank}-"
 
-        # ---------------- Set up a unique experiment folder for each process ----------------
-        project_path = ""
+        experiment_path = ""
 
-        # If auto_resume, check if there already exists the specified experiment folder name
-        if self.args.resume_TimeID == "latest":
-            # select the latest experiment folder
-            exp_mark = f"%s/%s/%s_%sSERVER*" % (
-                self._experiments_dir,
-                other_ranks_folder,
-                self.expname,
-                rank,
-            )
-            exps = glob.glob(exp_mark)
-            if len(exps) > 0:
-                project_path = sorted(exps)[-1]
+        # If resuming experiments, check if the specified experiment folder exists.
+        if self.args.resume_expid is not None:
+            if self.args.resume_expid == "latest":
+                # Select the latest experiment folder.
+                exp_mark = f"%s/%s/%s_%sSERVER*" % (
+                    self._experiments_dir,
+                    other_ranks_folder,
+                    self.expname,
+                    rank,
+                )
+                exps = glob.glob(exp_mark)
+                if len(exps) > 0:
+                    experiment_path = sorted(exps)[-1]
 
-        elif self.args.resume_TimeID:
-            raise NotImplementedError  # resume a specific ExpID
+            elif self.args.resume_expid.isdigit():
+                raise NotImplementedError  # Resume a specific expid.
 
-        if project_path != "":
-            self.ExpID = parse_ExpID(
-                project_path
-            )  # Every experiment folder is bound with an ExpID
+        if experiment_path != "":  # Use existing folder.
+            self.ExpID = parse_ExpID(experiment_path)
         else:
+            # Create a new folder.
             server = "SERVER%03d-" % int(self.userip.split(".")[-1])
-            TimeID = datetime.now(tz).strftime("%Y%m%d-%H%M%S")
-            self.ExpID = rank + server + TimeID
-            project_path = "%s/%s/%s_%s" % (
+            self.ExpID = rank + server + self._get_time_id()
+            experiment_path = "%s/%s/%s_%s" % (
                 self._experiments_dir,
                 other_ranks_folder,
                 self.expname,
@@ -284,18 +309,24 @@ class Logger(object):
 
         if (
             self.args.debug
-        ):  # debug has the highest priority. If debug, all the things will be saved in Debug_dir
-            project_path = self._debug_dir
-        project_path = os.path.normpath(project_path)
-        # ---------------- Set up a unique experiment folder for each process ----------------
+        ):  # --debug has the highest priority. If --debug, all the things will be saved in `Debug_dir`.
+            experiment_path = self._debug_dir
+        experiment_path = os.path.normpath(experiment_path)
+        return experiment_path
 
-        # Output interface
-        self.exp_path = project_path
-        self.weights_path = pjoin(project_path, self._weights_dir)
-        self.gen_img_path = pjoin(project_path, self._gen_img_dir)
-        self.log_path = pjoin(project_path, self._log_dir)
+    def set_up_experiment_dir(self):
+        """Set up a unique directory for each experiment."""
+        # Set up a unique experiment folder for each process.
+        experiment_path = self._get_experiment_path()
+
+        # Output interface.
+        self.exp_path = experiment_path
+        self.weights_path = pjoin(experiment_path, self._weights_dir)
+        self.gen_img_path = pjoin(experiment_path, self._gen_img_dir)
+        self.log_path = pjoin(experiment_path, self._log_dir)
         self.logplt_path = pjoin(self.log_path, "plot")
-        self._cache_path = pjoin(project_path, ".caches")
+        self.logtxt_path = pjoin(self.log_path, "log.txt")
+        self._cache_path = pjoin(experiment_path, ".caches")
         mkdirs(
             self.weights_path,
             self.gen_img_path,
@@ -303,8 +334,9 @@ class Logger(object):
             self._cache_path,
             exist_ok=True,
         )
-        self.logtxt_path = pjoin(self.log_path, "log.txt")
 
+        # When resuming experiments, do not append to existing log.txt. Instead, we
+        # prefer to create a new log txt and archive the old versions.
         if os.path.exists(self.logtxt_path):
             timestamp = os.path.getmtime(self.logtxt_path)
             timestamp = datetime.fromtimestamp(timestamp).strftime(
@@ -335,7 +367,7 @@ class Logger(object):
         main_process_only=True,
         color=None,
     ):
-        r"""Replace the standard print func. Print to console and logtxt file."""
+        """Replace the standard print func. Print to console and logtxt file."""
         if main_process_only:
             if self.global_rank not in [-1, 0]:
                 return
@@ -457,7 +489,7 @@ class Logger(object):
         main_process_only=True,
         color=None,
     ):
-        r"""Reload logger.info in python logging"""
+        """Reload logger.info in python logging"""
         result = traceback.extract_stack()
         caller = result[len(result) - 2]
         file_path_of_caller = str(caller).split(",")[0].lstrip("<FrameSummary file ")
@@ -518,7 +550,7 @@ class Logger(object):
         acc=False,
         level="info",
     ):
-        r"""Replace the standard print func. Print to console and logtxt file."""
+        """Replace the standard print func. Print to console and logtxt file."""
         msg = sep.join([str(v) for v in value]) + end
         if acc:
             msg = "  " * int(self.ExpID[-1]) + msg
@@ -625,7 +657,7 @@ class Logger(object):
         self.log_tracker.plot(name, out_path)
 
     def cache_code(self):
-        r"""Back up the code"""
+        """Back up the code"""
         if self.args.debug or self.args.no_cache:
             return
 
@@ -649,7 +681,7 @@ class Logger(object):
             yaml.dump(self.args.__dict__, f, indent=4)
 
     def netprint(self, net, comment=""):
-        r"""Deprecated. Will be removed."""
+        """Deprecated. Will be removed."""
         with open(pjoin(self.log_path, "model_arch.txt"), "w") as f:
             if comment:
                 print("%s:" % comment, file=f)

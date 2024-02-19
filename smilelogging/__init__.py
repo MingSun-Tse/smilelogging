@@ -12,8 +12,8 @@ argparser.add_argument(
 argparser.add_argument(
     "--experiments_dir",
     type=str,
-    default="Experiments",
-    help="name of the folder to store all experiments",
+    default="./Experiments",
+    help="Path of the folder to store all experiments.",
 )
 argparser.add_argument(
     "--debug",
@@ -31,10 +31,10 @@ argparser.add_argument(
     "--no_scp", action="store_true", help="not scp experiment to hub"
 )
 argparser.add_argument(
-    "--resume_TimeID",
+    "--resume_expid",
     type=str,
     default="",
-    help="the time ID used to uniquely identify an experiment",
+    help="The expid used to uniquely identify an experiment.",
 )
 
 # Customize smilelogging setups
