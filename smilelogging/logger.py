@@ -1,4 +1,5 @@
 import builtins
+import getpass
 import glob
 import logging
 import os
@@ -10,17 +11,15 @@ import traceback
 from collections import OrderedDict
 from datetime import datetime
 from fnmatch import fnmatch
-import getpass
 
 import numpy as np
-import yaml
-import pytz
 import pynvml
+import yaml
 
-from smilelogging.slutils import red, green, yellow, blue
+from smilelogging.slutils import blue, green, red, yellow
 
 pjoin = os.path.join
-tz = pytz.timezone("US/Eastern")
+tz = datetime.now().astimezone().tzinfo  # Use local timezone.
 
 
 def run_shell_command(cmd):
