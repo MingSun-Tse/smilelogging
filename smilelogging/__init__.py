@@ -4,8 +4,7 @@ import sys
 import configargparse
 
 from smilelogging.logger import Logger
-from smilelogging.slutils import blue, green, red, yellow, update_args
-
+from smilelogging.slutils import blue, green, red, update_args, yellow
 
 argparser = configargparse.ArgumentParser()
 argparser.add_argument(
@@ -28,6 +27,9 @@ argparser.add_argument(
     type=str,
     default="scripts/cache_code.sh",
     help="Path of the shell script to cache code",
+)
+argparser.add_argument(
+    "--no_scp", action="store_true", help="not scp experiment to hub"
 )
 argparser.add_argument(
     "--resume_expid",

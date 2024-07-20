@@ -37,13 +37,18 @@ Here we use the [PyTorch MNIST example](https://github.com/pytorch/examples/tree
 
 ```python
 from torch.optim.lr_scheduler import StepLR
-from smilelogging import Logger # ==> add this line
+from smilelogging import Logger  # ==> Add this line
 
 # parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-from smilelogging import argparser as parser # ==> replace above with this line
+from smilelogging import argparser as parser  # ==> Replace above with this line
 
 args = parser.parse_args()
-logger = Logger(args) # ==> add this line
+
+# ==> Add this line. This will overwrite the system print function.
+logger = Logger(args, overwrite_print=True)  
+
+# ==> Or, if you do not want to overwrite the system print function, add this line. Then use `logger.info` to print.
+logger = Logger(args)
 ```
 
 We already put the modified code at `test_example/main.py`, so you do not need to edit any file now. Simply `cd test_example` and continue to next step.
@@ -57,7 +62,7 @@ python main.py
 
 Now, try this:
 ```console
-python main.py --project_name lenet_mnist
+python main.py --experiment_name lenet_mnist
 ```
 > This snippet will set up an experiment folder at path `Experiments/lenet_mnist_XXX`. That `XXX` thing is an `ExpID` automatically assigned by the time running this snippet. Below is an example on my PC:
 ```
@@ -103,25 +108,6 @@ log_path = logger.log_path
 ```
 For more these path names, see [here](https://github.com/MingSun-Tse/smilelogging/blob/59b874947238aabd4abd08c065eea499ffdbbdfa/smilelogging/logger.py#L285).
 
-The folder names are pre-specified. If you do not like them and want to use your own folder setups, this code also provide such customization feature. Here is what you can do:
-
-- Step 1: create a config txt file, such as `smilelogging_config.txt`. An example is below:
-```txt
-_experiments_dir: Other_Name_You_Like
-_weights_dir: Other_Name_You_Like
-_gen_img_dir: Other_Name_You_Like
-_log_dir: Other_Name_You_Like
-!reserve_dir: test/misc_results
-```
-where the `!reserve_dir` line is to indicate that you want to create a folder at path `test/misc_results` (under each experiment folder). The path of this folder will be assigned as an attribute of the `Logger` class, so you may use `logger.test__misc_results` (note `/` is replaced with `__`) to access it.
-
-- Step 2: Add the following 2 lines (which are to enable a high-level feature of args) right after `args = parser.parse_args()`:
-```
-from smilelogging.utils import update_args
-args = update_args(args)
-```
-
-- Step 3: when running experiments, append `--hacksmile.ON --hacksmile.config <path_to_config_in_Step_1>` to your script.
 
 ## More Explanantions about the Arguments and TIPs
 
@@ -132,9 +118,6 @@ python main.py --debug
 This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experiments` is expected to store the *formal* experiment results).
 
 
-## TODO
-- [ ] Add training and testing metric (like accuracy, PSNR) plots.
-
 ## Mission of this project
 We target **100% open** scientific experimenting: 
 - Every number or data point in the paper (either in tables or figures) is traceable with a log/checkpoint.
@@ -142,5 +125,3 @@ We target **100% open** scientific experimenting:
 
 ## Collaboration / Suggestions
 Currently, this is still an alpha project. Any collaboration or suggestions are welcome to Huan Wang (Email: `wang.huan@northeastern.edu`).
-
-
