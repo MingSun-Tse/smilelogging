@@ -20,14 +20,13 @@ These steps are pretty simple, but if you implement them over and over again in 
 ## Usage
 
 **Step 0: Install the package (>= python3.4)**
-```console
-pip install smilelogging
-
-# next we will use PyTorch code as an example, so please also install PyTorch here
+```bash
+# We will use PyTorch code as an example, so please also install PyTorch here
 pip install torch torchvision
 
-# clone this repo to continue
+# Clone this repo and install from source (pypi may not be the lastest!)
 git clone https://github.com/MingSun-Tse/smilelogging.git
+pip install -e .
 cd smilelogging
 ```
 
