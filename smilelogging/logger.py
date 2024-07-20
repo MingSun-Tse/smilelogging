@@ -663,7 +663,7 @@ class Logger(object):
         cache_script = self.args.cache_code
         if os.path.exists(cache_script):
             t0 = time.time()
-            logtmp = f"==> Caching code to '{self._cache_path}' using the provided script {cache_script}"
+            logtmp = f"==> Caching code to '{yellow(self._cache_path)}' using the provided script {yellow(cache_script)}"
             self.print(logtmp)
             cmd = f"sh {cache_script} {self._cache_path}"
             os.system(cmd)

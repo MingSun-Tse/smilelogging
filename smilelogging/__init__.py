@@ -1,13 +1,15 @@
-import configargparse
 import functools
 import sys
 
+import configargparse
+
 from smilelogging.logger import Logger
-from smilelogging.slutils import update_args, red, green, yellow, blue
+from smilelogging.slutils import blue, green, red, yellow, update_args
+
 
 argparser = configargparse.ArgumentParser()
 argparser.add_argument(
-    "--experiment_name", type=str, default="", help="experiment name"
+    "--experiment_name", type=str, default="", help="Experiment name"
 )
 argparser.add_argument(
     "--experiments_dir",
@@ -18,23 +20,20 @@ argparser.add_argument(
 argparser.add_argument(
     "--debug",
     action="store_true",
-    help="if so, all the logs will be saved to `Debug_Dir`",
+    help="All the logs will be saved to `Debug_Dir`",
 )
 argparser.add_argument("--no_cache", action="store_true", help="not cache code")
 argparser.add_argument(
     "--cache_code",
     type=str,
     default="scripts/cache_code.sh",
-    help="the script to cache code",
-)
-argparser.add_argument(
-    "--no_scp", action="store_true", help="not scp experiment to hub"
+    help="Path of the shell script to cache code",
 )
 argparser.add_argument(
     "--resume_expid",
     type=str,
     default="",
-    help="The expid used to uniquely identify an experiment.",
+    help="The expid used to uniquely identify an experiment",
 )
 
 # Customize smilelogging setups
