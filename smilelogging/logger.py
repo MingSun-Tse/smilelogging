@@ -19,7 +19,7 @@ import yaml
 from smilelogging.slutils import blue, green, red, yellow
 
 pjoin = os.path.join
-tz = datetime.now().astimezone().tzinfo  # Use local timezone.
+timezone = datetime.now().astimezone().tzinfo  # Use local timezone.
 
 
 def run_shell_command(cmd):
@@ -184,12 +184,10 @@ class Logger(object):
         )  # get CodeID before 'print_args()' because it will be printed in log.
         self.print_args()
 
-        # Cache misc environment info  (e.g., GPU, git, etc.) and code files
-        self.save_args()  # to .yaml
-        self.save_nvidia_smi()  # print GPU info
-        self.save_git_status()
-        if self.global_rank in [-1, 0]:  # only the main process does the caching job
-            self.cache_code()  # backup code
+        # Cache misc environment info  (e.g., args, GPU, git, etc.) and codes.
+        self.save_env_snapshot()
+        if self.global_rank in [-1, 0]:  # Only the main process does caching.
+            self.cache_code()
 
     def _figure_out_rank(self):
         global_rank = os.getenv("GLOBAL_RANK", -1)
@@ -246,14 +244,14 @@ class Logger(object):
         Returns:
             time_id: A string that indicates the time stamp of the experiment.
         """
-        time_id = datetime.now(tz).strftime("%Y%m%d-%H%M%S")
+        time_id = datetime.now(timezone).strftime("%Y%m%d-%H%M%S")
         expid = time_id[-6:]
         existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
         t0 = time.time()
         # Make sure the expid is unique.
         while len(existing_exps) > 0:
             time.sleep(1)
-            time_id = datetime.now(tz).strftime("%Y%m%d-%H%M%S")
+            time_id = datetime.now(timezone).strftime("%Y%m%d-%H%M%S")
             expid = time_id[-6:]
             existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
             if time.time() - t0 > 120:
@@ -421,7 +419,7 @@ class Logger(object):
             )  # Add blanks to acc lines for easier identification
 
         if not unprefix:
-            now = datetime.now(tz).strftime("%Y/%m/%d-%H:%M:%S")
+            now = datetime.now(timezone).strftime("%Y/%m/%d-%H:%M:%S")
             prefix = "[%s %s %s] %s" % (self.ExpID[-6:], os.getpid(), now, info)
             if self.debug:
                 prefix = "[%s %s %s] [%s] %s" % (
@@ -625,8 +623,9 @@ class Logger(object):
 
     def print_args(self):
         """Example: ('batch_size', 16) ('CodeID', 12defsd2) ('decoder', models/small16x_ae_base/d5_base.pth)
-        It will sort the arg keys in alphabeta order, case insensitive."""
-        # build a key map for later sorting
+        It will sort the arg keys in alphabeta order, case insensitive.
+        """
+        # Build a key map for later sorting.
         key_map = {}
         for k in self.args.__dict__:
             k_lower = k.lower()
@@ -635,28 +634,34 @@ class Logger(object):
             else:
                 key_map[k_lower] = k
 
-        # print in the order of sorted lower keys
+        # Print in the order of sorted lower keys.
         logtmp = ""
         for k_ in sorted(key_map.keys()):
             real_key = key_map[k_]
             logtmp += "('%s': %s) " % (real_key, self.args.__dict__[real_key])
         self.print(logtmp + "\n", unprefix=True)
 
-    def save_nvidia_smi(self):
-        out = pjoin(self.log_path, "gpu_info.txt")
-        script = "nvidia-smi >> %s" % out
-        os.system(script)
+    def save_env_snapshot(self):
+        """Save environment snapshot (such as gpu info, users, git info)."""
+        # Save args.
+        with open(pjoin(self.log_path, "args.yaml"), "w") as f:
+            yaml.dump(self.args.__dict__, f, indent=4)
 
-    def save_git_status(self):
+        # Save system info.
+        os.system("nvidia-smi >> {}".format(pjoin(self.log_path, "nvidia-smi.log")))
+        os.system("gpu-stat >> {}".format(pjoin(self.log_path, "gpu-stat.log")))
+        os.system("who -b >> {}".format(pjoin(self.log_path, "who.log")))
+        os.system("who >> {}".format(pjoin(self.log_path, "who.log")))
+
+        # Save git info.
         if self.use_git:
-            script = "git status >> %s" % pjoin(self.log_path, "git_status.txt")
-            os.system(script)
+            os.system("git status >> {}".format(pjoin(self.log_path, "git_status.log")))
 
     def plot(self, name, out_path):
         self.log_tracker.plot(name, out_path)
 
     def cache_code(self):
-        """Back up the code"""
+        """Back up the code. Do not back up in debug mode, or, explicitly using --no_cache."""
         if self.args.debug or self.args.no_cache:
             return
 
@@ -676,8 +681,7 @@ class Logger(object):
         return file_path.split("/")[-2]
 
     def save_args(self):
-        with open(pjoin(self.log_path, "args.yaml"), "w") as f:
-            yaml.dump(self.args.__dict__, f, indent=4)
+
 
     def netprint(self, net, comment=""):
         """Deprecated. Will be removed."""
@@ -687,4 +691,4 @@ class Logger(object):
             print("%s\n" % str(net), file=f, flush=True)
 
     def timenow(self):
-        return datetime.now(tz).strftime("%Y/%m/%d-%H:%M:%S")
+        return datetime.now(timezone).strftime("%Y/%m/%d-%H:%M:%S")
