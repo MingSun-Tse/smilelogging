@@ -26,8 +26,8 @@ pip install torch torchvision
 
 # Clone this repo and install from source (pypi may not be the lastest!)
 git clone https://github.com/MingSun-Tse/smilelogging.git
-pip install -e .
 cd smilelogging
+pip install -e .
 ```
 
 **Step 1: Modify your code**
