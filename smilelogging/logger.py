@@ -642,7 +642,7 @@ class Logger(object):
         self.print(logtmp + "\n", unprefix=True)
 
     def save_env_snapshot(self):
-        """Save environment snapshot (such as gpu info, users, git info)."""
+        """Save environment snapshot (such as args, gpu info, users, git info)."""
         # Save args.
         with open(pjoin(self.log_path, "args.yaml"), "w") as f:
             yaml.dump(self.args.__dict__, f, indent=4)
@@ -679,9 +679,6 @@ class Logger(object):
         """For example, 'Projects/FasterRCNN/logger.py', then return 'FasterRCNN'"""
         file_path = os.path.abspath(__file__)
         return file_path.split("/")[-2]
-
-    def save_args(self):
-
 
     def netprint(self, net, comment=""):
         """Deprecated. Will be removed."""
