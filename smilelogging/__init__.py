@@ -4,7 +4,7 @@ import sys
 import configargparse
 
 from smilelogging.logger import Logger
-from smilelogging.slutils import blue, green, red, yellow, update_args
+from smilelogging.slutils import blue, green, red, yellow, bold, update_args
 
 
 argparser = configargparse.ArgumentParser()

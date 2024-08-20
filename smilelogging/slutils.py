@@ -1,15 +1,20 @@
-import os
-import socket
 import copy
+import os
 import re
+import socket
 
-from colorama import init, Fore, Back, Style  # Need to pip install colorama first
+from colorama import (  # Need to "pip install colorama" first. Compatible with Windows users.
+    Back,
+    Fore,
+    Style,
+    init,
+)
 
-init()  # Initialize colorama
+init()  # Initialize colorama.
 
 
 def get_exp_name_id(exp_path):
-    r"""arg examples: Experiments/kd-vgg13vgg8-cifar100-Temp40_SERVER5-20200727-220318
+    """arg examples: Experiments/kd-vgg13vgg8-cifar100-Temp40_SERVER5-20200727-220318
             or kd-vgg13vgg8-cifar100-Temp40_SERVER5-20200727-220318
             or Experiments/kd-vgg13vgg8-cifar100-Temp40_SERVER5-20200727-220318/weights/ckpt.pth
             or PruneCnst_AlignCnst__PR0.875__ddprun_RANK0-SERVER196-20230614-194146
@@ -49,7 +54,7 @@ def clean_colored_text(logs):
 
 
 def standardize_metricline(line):
-    r"""Make metric line in standard form."""
+    """Make metric line in standard form."""
     line = clean_colored_text(line)
     for m in [
         "(",
@@ -73,7 +78,7 @@ def standardize_metricline(line):
 
 
 def get_value(line, key, type_func=float):
-    r"""Get the value of a <key> in <line> in a log txt."""
+    """Get the value of a <key> in <line> in a log txt."""
     # Preprocessing to deal with some non-standard log format
     line = standardize_metricline(line)
 
@@ -107,7 +112,7 @@ def get_project_name():
 # acc line example: Acc1 0.9195 @ Step 46600 (Best = 0.9208 @ Step 38200) lr 0.0001
 # acc line example: ==> test acc = 0.7156 @ step 80000 (best = 0.7240 @ step 21300)
 def is_metric_line(line, mark=""):
-    r"""This function determines if a line is an accuracy line. Of course the accuracy line should meet some
+    """This function determines if a line is an accuracy line. Of course the accuracy line should meet some
     format features which @mst used. So if these format features are changed, this func may not work.
     """
     line = standardize_metricline(line)
@@ -125,7 +130,7 @@ def is_metric_line(line, mark=""):
 
 
 def parse_metric(line, metric, scale=1.0):
-    r"""Parse out the metric value of interest."""
+    """Parse out the metric value of interest."""
     line = line.strip()
     # Get the last metric
     try:
@@ -151,7 +156,7 @@ def parse_metric(line, metric, scale=1.0):
 
 
 def parse_time(line):
-    r"""Parse the time (e.g., epochs or steps) in a metric line."""
+    """Parse the time (e.g., epochs or steps) in a metric line."""
     line = standardize_metricline(line)
     if " Epoch " in line:
         time = get_value(line, "Epoch", type_func=int)
@@ -206,24 +211,30 @@ def update_args(args):
 
 
 def red(*msg, sep=","):
-    """Wrap log string with red color"""
+    """Wrap log string with red colo"""
     msg = sep.join([str(x) for x in msg])
     return Fore.RED + msg + Style.RESET_ALL
 
 
 def green(*msg, sep=","):
-    """Wrap log string with green color"""
+    """Wrap log string with green colo"""
     msg = sep.join([str(x) for x in msg])
     return Fore.GREEN + msg + Style.RESET_ALL
 
 
 def yellow(*msg, sep=","):
-    """Wrap log string with yellow color"""
+    """Wrap log string with yellow colo"""
     msg = sep.join([str(x) for x in msg])
     return Fore.YELLOW + msg + Style.RESET_ALL
 
 
 def blue(*msg, sep=","):
-    """Wrap log string with blue color"""
+    """Wrap log string with blue colo"""
     msg = sep.join([str(x) for x in msg])
     return Fore.BLUE + msg + Style.RESET_ALL
+
+
+def bold(*msg, sep=","):
+    """Wrap log string in bold"""
+    msg = sep.join([str(x) for x in msg])
+    return Style.BRIGHT + msg + Style.RESET_ALL
