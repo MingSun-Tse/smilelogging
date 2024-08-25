@@ -649,7 +649,7 @@ class Logger(object):
 
         # Save system info.
         os.system("nvidia-smi >> {}".format(pjoin(self.log_path, "nvidia-smi.log")))
-        os.system("gpu-stat >> {}".format(pjoin(self.log_path, "gpu-stat.log")))
+        os.system("gpustat >> {}".format(pjoin(self.log_path, "gpustat.log")))
         os.system("who -b >> {}".format(pjoin(self.log_path, "who.log")))
         os.system("who >> {}".format(pjoin(self.log_path, "who.log")))
 
