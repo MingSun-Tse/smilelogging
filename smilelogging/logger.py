@@ -234,6 +234,123 @@ class Logger(object):
             new_f = pjoin(self.log_path, f"log_{timestamp}.txt")
             os.rename(self.logtxt_path, new_f)
     
+    def print_script(self):
+        script = f"hostname: {self.hostname}  userip: {self.userip}\n"
+        script += "cd %s\n" % os.path.abspath(os.getcwd())
+        if self.ddp:
+            program = (
+                "OMP_NUM_THREADS=12 MKL_SERVICE_FORCE_INTEL=1 CUDA_VISIBLE_DEVICES=<ToAdd> "
+                "python -m torch.distributed.run --nproc_per_node <ToAdd>"
+            )
+            script += " ".join([program, *sys.argv])
+        else:
+            if "CUDA_VISIBLE_DEVICES" in os.environ:
+                gpu_id = os.environ["CUDA_VISIBLE_DEVICES"]
+            else:
+                pynvml.nvmlInit()
+                num_total_gpus = pynvml.nvmlDeviceGetCount()
+                gpu_id = ",".join([str(x) for x in range(num_total_gpus)])
+            script += " ".join(["CUDA_VISIBLE_DEVICES=%s python" % gpu_id, *sys.argv])
+        script = green(script)
+        script += "\n"
+        self.print(script, unprefix=True)
+
+    def print_args(self):
+        """Example: ('batch_size', 16) ('CodeID', 12defsd2) ('decoder', models/small16x_ae_base/d5_base.pth)
+        It will sort the arg keys in alphabeta order, case insensitive.
+        """
+        # Build a key map for later sorting.
+        key_map = {}
+        for k in self.args.__dict__:
+            k_lower = k.lower()
+            if k_lower in key_map:
+                key_map[k_lower + "_" + k_lower] = k
+            else:
+                key_map[k_lower] = k
+
+        # Print in the order of sorted lower keys.
+        logtmp = ""
+        cnt = 0
+        for k_ in sorted(key_map.keys()):
+            cnt = cnt + 1
+            real_key = key_map[k_]
+            logtmp += "('%s': %s) " % (real_key, self.args.__dict__[real_key])
+            if cnt % 5 == 0:
+                logtmp += '\n'
+        self.print(logtmp + "\n", unprefix=True)
+    
+    def _get_experiment_path(self):
+        """Get a unique directory for each experiment."""
+        # Get rank for each process (used in multi-process training, e.g., DDP).
+        if self.global_rank == -1:
+            other_ranks_folder = ""
+            rank = ""
+        else:
+            other_ranks_folder = "" if self.global_rank == 0 else "OtherRanks"
+            rank = f"RANK{self.global_rank}-"
+
+        experiment_path = ""
+
+        # If resuming experiments, check if the specified experiment folder exists.
+        if self.args.resume_expid is not None:
+            if self.args.resume_expid == "latest":
+                # Select the latest experiment folder.
+                exp_mark = f"%s/%s/%s_%sSERVER*" % (
+                    self._experiments_dir,
+                    other_ranks_folder,
+                    self.expname,
+                    rank,
+                )
+                exps = glob.glob(exp_mark)
+                if len(exps) > 0:
+                    experiment_path = sorted(exps)[-1]
+
+            elif self.args.resume_expid.isdigit():
+                raise NotImplementedError  # Resume a specific expid.
+
+        if experiment_path != "":  # Use existing folder.
+            self.ExpID = parse_ExpID(experiment_path)
+        else:
+            # Create a new folder.
+            server = "SVR.%03d_" % int(self.userip.split(".")[-1])
+            self.ExpID = rank + server + self._get_time_id()
+            experiment_path = "%s/%s/%s_%s" % (
+                self._experiments_dir,
+                other_ranks_folder,
+                self.expname,
+                self.ExpID,
+            )
+
+        if (
+            self.args.debug
+        ):  # --debug has the highest priority. If --debug, all the things will be saved in `Debug_dir`.
+            experiment_path = self._debug_dir
+        experiment_path = os.path.normpath(experiment_path)
+        return experiment_path
+    
+    def _get_time_id(self) -> str:
+        """Get time stamp for the experiment folder name. The expid must be unique.
+
+        Returns:
+            time_id: A string that indicates the time stamp of the experiment.
+        """
+        time_id = datetime.now(timezone).strftime("%m-%d-%y_%H:%M:%S")
+        expid = time_id[-6:]
+        existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
+        t0 = time.time()
+        # Make sure the expid is unique.
+        while len(existing_exps) > 0:
+            time.sleep(1)
+            time_id = datetime.now(timezone).strftime("%m-%d-%y_%H:%M:%S")
+            expid = time_id[-6:]
+            existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
+            if time.time() - t0 > 120:
+                self.print(
+                    "Hanged for more than 2 mins when creating the experiment folder, "
+                    "which is unusual. Please try again."
+                )
+                exit(1)
+        return time_id
     
     
     #*===========================================================================*#
@@ -286,79 +403,6 @@ class Logger(object):
             logtmp = "Warning! Git not found under this project. Highly recommended to use Git to manage code"
             self.print(logtmp)
         return CodeID
-
-    def _get_time_id(self) -> str:
-        """Get time stamp for the experiment folder name. The expid must be unique.
-
-        Returns:
-            time_id: A string that indicates the time stamp of the experiment.
-        """
-        time_id = datetime.now(timezone).strftime("%Y%m%d-%H%M%S")
-        expid = time_id[-6:]
-        existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
-        t0 = time.time()
-        # Make sure the expid is unique.
-        while len(existing_exps) > 0:
-            time.sleep(1)
-            time_id = datetime.now(timezone).strftime("%Y%m%d-%H%M%S")
-            expid = time_id[-6:]
-            existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
-            if time.time() - t0 > 120:
-                self.print(
-                    "Hanged for more than 2 mins when creating the experiment folder, "
-                    "which is unusual. Please try again."
-                )
-                exit(1)
-        return time_id
-
-    def _get_experiment_path(self):
-        """Get a unique directory for each experiment."""
-        # Get rank for each process (used in multi-process training, e.g., DDP).
-        if self.global_rank == -1:
-            other_ranks_folder = ""
-            rank = ""
-        else:
-            other_ranks_folder = "" if self.global_rank == 0 else "OtherRanks"
-            rank = f"RANK{self.global_rank}-"
-
-        experiment_path = ""
-
-        # If resuming experiments, check if the specified experiment folder exists.
-        if self.args.resume_expid is not None:
-            if self.args.resume_expid == "latest":
-                # Select the latest experiment folder.
-                exp_mark = f"%s/%s/%s_%sSERVER*" % (
-                    self._experiments_dir,
-                    other_ranks_folder,
-                    self.expname,
-                    rank,
-                )
-                exps = glob.glob(exp_mark)
-                if len(exps) > 0:
-                    experiment_path = sorted(exps)[-1]
-
-            elif self.args.resume_expid.isdigit():
-                raise NotImplementedError  # Resume a specific expid.
-
-        if experiment_path != "":  # Use existing folder.
-            self.ExpID = parse_ExpID(experiment_path)
-        else:
-            # Create a new folder.
-            server = "SERVER%03d-" % int(self.userip.split(".")[-1])
-            self.ExpID = rank + server + self._get_time_id()
-            experiment_path = "%s/%s/%s_%s" % (
-                self._experiments_dir,
-                other_ranks_folder,
-                self.expname,
-                self.ExpID,
-            )
-
-        if (
-            self.args.debug
-        ):  # --debug has the highest priority. If --debug, all the things will be saved in `Debug_dir`.
-            experiment_path = self._debug_dir
-        experiment_path = os.path.normpath(experiment_path)
-        return experiment_path
 
     def set_up_logtxt(self):
         self.logtxt = open(self.logtxt_path, "a+")
@@ -618,51 +662,6 @@ class Logger(object):
         hostname = socket.gethostname()
         return userip, hostname
 
-    def print_script(self):
-        script = f"hostname: {self.hostname}  userip: {self.userip}\n"
-        script += "cd %s\n" % os.path.abspath(os.getcwd())
-        if self.ddp:
-            program = (
-                "OMP_NUM_THREADS=12 MKL_SERVICE_FORCE_INTEL=1 CUDA_VISIBLE_DEVICES=<ToAdd> "
-                "python -m torch.distributed.run --nproc_per_node <ToAdd>"
-            )
-            script += " ".join([program, *sys.argv])
-        else:
-            if "CUDA_VISIBLE_DEVICES" in os.environ:
-                gpu_id = os.environ["CUDA_VISIBLE_DEVICES"]
-            else:
-                pynvml.nvmlInit()
-                num_total_gpus = pynvml.nvmlDeviceGetCount()
-                gpu_id = ",".join([str(x) for x in range(num_total_gpus)])
-            script += " ".join(["CUDA_VISIBLE_DEVICES=%s python" % gpu_id, *sys.argv])
-        script = yellow(script)
-        script += "\n"
-        self.print(script, unprefix=True)
-
-    def print_args(self):
-        """Example: ('batch_size', 16) ('CodeID', 12defsd2) ('decoder', models/small16x_ae_base/d5_base.pth)
-        It will sort the arg keys in alphabeta order, case insensitive.
-        """
-        # Build a key map for later sorting.
-        key_map = {}
-        for k in self.args.__dict__:
-            k_lower = k.lower()
-            if k_lower in key_map:
-                key_map[k_lower + "_" + k_lower] = k
-            else:
-                key_map[k_lower] = k
-
-        # Print in the order of sorted lower keys.
-        logtmp = ""
-        cnt = 0
-        for k_ in sorted(key_map.keys()):
-            cnt = cnt + 1
-            real_key = key_map[k_]
-            logtmp += "('%s': %s) " % (real_key, self.args.__dict__[real_key])
-            if cnt % 5 == 0:
-                logtmp += '\n'
-        self.print(logtmp + "\n", unprefix=True)
-
     def plot(self, name, out_path):
         self.log_tracker.plot(name, out_path)
 
@@ -685,13 +684,6 @@ class Logger(object):
         """For example, 'Projects/FasterRCNN/logger.py', then return 'FasterRCNN'"""
         file_path = os.path.abspath(__file__)
         return file_path.split("/")[-2]
-
-    def netprint(self, net, comment=""):
-        """Deprecated. Will be removed."""
-        with open(pjoin(self.log_path, "model_arch.txt"), "w") as f:
-            if comment:
-                print("%s:" % comment, file=f)
-            print("%s\n" % str(net), file=f, flush=True)
 
     def timenow(self):
         return datetime.now(timezone).strftime("%Y/%m/%d-%H:%M:%S")
