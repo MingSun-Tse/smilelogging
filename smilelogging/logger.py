@@ -222,6 +222,7 @@ class Logger(object):
         self.logplt_path = pjoin(self.log_path, "plot")
         self.logtxt_path = pjoin(self.log_path, "log.txt")
         self._cache_path = pjoin(experiment_path, ".caches")
+        #TODO Modify as your requirement~
         mkdirs(self.log_path, exist_ok=True)
 
         # When resuming experiments, do not append to existing log.txt. Instead, we
