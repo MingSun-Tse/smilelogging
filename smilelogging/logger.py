@@ -1,3 +1,4 @@
+# region - imports
 import builtins
 import getpass
 import glob
@@ -20,8 +21,9 @@ from smilelogging.slutils import blue, green, red, yellow
 
 pjoin = os.path.join
 timezone = datetime.now().astimezone().tzinfo  # Use local timezone.
+# endregion - imports
 
-
+# region - utils
 def run_shell_command(cmd):
     """Run shell command and return the output (string) in a list.
     Args:
@@ -147,6 +149,7 @@ class LogTracker:
         """Moving average."""
         return moving_average(self._metrics[k], window)
 
+# endregion - utils
 
 class Logger(object):
     passer = {}
@@ -189,6 +192,52 @@ class Logger(object):
         if self.global_rank in [-1, 0]:  # Only the main process does caching.
             self.cache_code()
 
+    def save_env_snapshot(self):
+        """Save environment snapshot (such as args, gpu info, users, git info)."""
+        # Save args.
+        with open(pjoin(self.log_path, "args.yaml"), "w") as f:
+            yaml.dump(self.args.__dict__, f, indent=4)
+
+        # Save system info.
+        mkdirs(pjoin(self.exp_path, "machine-info"), exist_ok = True)
+        os.system("nvidia-smi >> {}".format(pjoin(self.exp_path, "machine-info/nvidia-smi.log")))
+        os.system("gpustat >> {}".format(pjoin(self.exp_path, "machine-info/gpustat.log")))
+        os.system("who -b >> {}".format(pjoin(self.exp_path, "machine-info/who.log")))
+        os.system("who >> {}".format(pjoin(self.exp_path, "machine-info/who.log")))
+
+        # Save git info.
+        if self.use_git:
+            os.system("git status >> {}".format(pjoin(self.exp_path, "machine-info/git_status.log")))
+    
+    def set_up_experiment_dir(self):
+        """Set up a unique directory for each experiment."""
+        # Set up a unique experiment folder for each process.
+        experiment_path = self._get_experiment_path()
+
+        # Output interface.
+        self.exp_path = experiment_path
+        self.weights_path = pjoin(experiment_path, self._weights_dir)
+        self.gen_img_path = pjoin(experiment_path, self._gen_img_dir)
+        self.log_path = pjoin(experiment_path, self._log_dir)
+        self.logplt_path = pjoin(self.log_path, "plot")
+        self.logtxt_path = pjoin(self.log_path, "log.txt")
+        self._cache_path = pjoin(experiment_path, ".caches")
+        mkdirs(self.log_path, exist_ok=True)
+
+        # When resuming experiments, do not append to existing log.txt. Instead, we
+        # prefer to create a new log txt and archive the old versions.
+        if os.path.exists(self.logtxt_path):
+            timestamp = os.path.getmtime(self.logtxt_path)
+            timestamp = datetime.fromtimestamp(timestamp).strftime(
+                "lastmodified-%Y%m%d-%H%M%S"
+            )
+            new_f = pjoin(self.log_path, f"log_{timestamp}.txt")
+            os.rename(self.logtxt_path, new_f)
+    
+    
+    
+    #*===========================================================================*#
+    
     def _figure_out_rank(self):
         global_rank = os.getenv("GLOBAL_RANK", -1)
         local_rank = os.getenv("LOCAL_RANK", -1)
@@ -310,37 +359,6 @@ class Logger(object):
             experiment_path = self._debug_dir
         experiment_path = os.path.normpath(experiment_path)
         return experiment_path
-
-    def set_up_experiment_dir(self):
-        """Set up a unique directory for each experiment."""
-        # Set up a unique experiment folder for each process.
-        experiment_path = self._get_experiment_path()
-
-        # Output interface.
-        self.exp_path = experiment_path
-        self.weights_path = pjoin(experiment_path, self._weights_dir)
-        self.gen_img_path = pjoin(experiment_path, self._gen_img_dir)
-        self.log_path = pjoin(experiment_path, self._log_dir)
-        self.logplt_path = pjoin(self.log_path, "plot")
-        self.logtxt_path = pjoin(self.log_path, "log.txt")
-        self._cache_path = pjoin(experiment_path, ".caches")
-        mkdirs(
-            self.weights_path,
-            self.gen_img_path,
-            self.logplt_path,
-            self._cache_path,
-            exist_ok=True,
-        )
-
-        # When resuming experiments, do not append to existing log.txt. Instead, we
-        # prefer to create a new log txt and archive the old versions.
-        if os.path.exists(self.logtxt_path):
-            timestamp = os.path.getmtime(self.logtxt_path)
-            timestamp = datetime.fromtimestamp(timestamp).strftime(
-                "lastmodified-%Y%m%d-%H%M%S"
-            )
-            new_f = pjoin(self.log_path, f"log_{timestamp}.txt")
-            os.rename(self.logtxt_path, new_f)
 
     def set_up_logtxt(self):
         self.logtxt = open(self.logtxt_path, "a+")
@@ -636,26 +654,14 @@ class Logger(object):
 
         # Print in the order of sorted lower keys.
         logtmp = ""
+        cnt = 0
         for k_ in sorted(key_map.keys()):
+            cnt = cnt + 1
             real_key = key_map[k_]
             logtmp += "('%s': %s) " % (real_key, self.args.__dict__[real_key])
+            if cnt % 5 == 0:
+                logtmp += '\n'
         self.print(logtmp + "\n", unprefix=True)
-
-    def save_env_snapshot(self):
-        """Save environment snapshot (such as args, gpu info, users, git info)."""
-        # Save args.
-        with open(pjoin(self.log_path, "args.yaml"), "w") as f:
-            yaml.dump(self.args.__dict__, f, indent=4)
-
-        # Save system info.
-        os.system("nvidia-smi >> {}".format(pjoin(self.log_path, "nvidia-smi.log")))
-        os.system("gpustat >> {}".format(pjoin(self.log_path, "gpustat.log")))
-        os.system("who -b >> {}".format(pjoin(self.log_path, "who.log")))
-        os.system("who >> {}".format(pjoin(self.log_path, "who.log")))
-
-        # Save git info.
-        if self.use_git:
-            os.system("git status >> {}".format(pjoin(self.log_path, "git_status.log")))
 
     def plot(self, name, out_path):
         self.log_tracker.plot(name, out_path)

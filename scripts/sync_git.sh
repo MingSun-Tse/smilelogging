@@ -1,1 +1,0 @@
-../../ScriptsTools/auto_experimenting/sync_git.sh
