@@ -252,7 +252,7 @@ class Logger(object):
                 num_total_gpus = pynvml.nvmlDeviceGetCount()
                 gpu_id = ",".join([str(x) for x in range(num_total_gpus)])
             script += " ".join(["CUDA_VISIBLE_DEVICES=%s python" % gpu_id, *sys.argv])
-        script = green(script)
+        script = blue(script)
         script += "\n"
         self.print(script, unprefix=True)
 
@@ -288,7 +288,7 @@ class Logger(object):
             rank = ""
         else:
             other_ranks_folder = "" if self.global_rank == 0 else "OtherRanks"
-            rank = f"RANK{self.global_rank}-"
+            rank = f"RK{self.global_rank}-"
 
         experiment_path = ""
 
@@ -296,7 +296,7 @@ class Logger(object):
         if self.args.resume_expid is not None:
             if self.args.resume_expid == "latest":
                 # Select the latest experiment folder.
-                exp_mark = f"%s/%s/%s_%sSERVER*" % (
+                exp_mark = f"%s/%s/%s_%sSVR.*" % (
                     self._experiments_dir,
                     other_ranks_folder,
                     self.expname,
