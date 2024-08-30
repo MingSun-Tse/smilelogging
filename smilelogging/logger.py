@@ -160,8 +160,8 @@ class Logger(object):
         # Logging folder names.
         self._experiments_dir = args.experiments_dir
         self._debug_dir = "Debug_Dir"
-        self._weights_dir = "weights"
-        self._gen_img_dir = "gen_img"
+        self._weights_dir = "model-info/weights"
+        self._gen_img_dir = "outputs/gen_img"
         self._log_dir = "log"
 
         # Handle the DDP case.
@@ -244,14 +244,14 @@ class Logger(object):
         Returns:
             time_id: A string that indicates the time stamp of the experiment.
         """
-        time_id = datetime.now(timezone).strftime("%Y%m%d-%H%M%S")
+        time_id = datetime.now(timezone).strftime("%m-%d-%y_%H:%M:%S")
         expid = time_id[-6:]
         existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
         t0 = time.time()
         # Make sure the expid is unique.
         while len(existing_exps) > 0:
             time.sleep(1)
-            time_id = datetime.now(timezone).strftime("%Y%m%d-%H%M%S")
+            time_id = datetime.now(timezone).strftime("%m-%d-%y_%H:%M:%S")
             expid = time_id[-6:]
             existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
             if time.time() - t0 > 120:
@@ -278,7 +278,7 @@ class Logger(object):
         if self.args.resume_expid is not None:
             if self.args.resume_expid == "latest":
                 # Select the latest experiment folder.
-                exp_mark = f"%s/%s/%s_%sSERVER*" % (
+                exp_mark = f"%s/%s/%s_%sSVR.*" % (
                     self._experiments_dir,
                     other_ranks_folder,
                     self.expname,
@@ -295,7 +295,7 @@ class Logger(object):
             self.ExpID = parse_ExpID(experiment_path)
         else:
             # Create a new folder.
-            server = "SERVER%03d-" % int(self.userip.split(".")[-1])
+            server = "SVR.%03d_" % int(self.userip.split(".")[-1])
             self.ExpID = rank + server + self._get_time_id()
             experiment_path = "%s/%s/%s_%s" % (
                 self._experiments_dir,
@@ -321,10 +321,11 @@ class Logger(object):
         self.weights_path = pjoin(experiment_path, self._weights_dir)
         self.gen_img_path = pjoin(experiment_path, self._gen_img_dir)
         self.log_path = pjoin(experiment_path, self._log_dir)
-        self.logplt_path = pjoin(self.log_path, "plot")
+        self.logplt_path = pjoin(experiment_path, "outputs/plot")
         self.logtxt_path = pjoin(self.log_path, "log.txt")
-        self._cache_path = pjoin(experiment_path, ".caches")
+        self._cache_path = pjoin(experiment_path, "model-info/.caches")
         mkdirs(
+            self.log_path, 
             self.weights_path,
             self.gen_img_path,
             self.logplt_path,
@@ -617,7 +618,7 @@ class Logger(object):
                 num_total_gpus = pynvml.nvmlDeviceGetCount()
                 gpu_id = ",".join([str(x) for x in range(num_total_gpus)])
             script += " ".join(["CUDA_VISIBLE_DEVICES=%s python" % gpu_id, *sys.argv])
-        script = yellow(script)
+        script = blue(script)
         script += "\n"
         self.print(script, unprefix=True)
 
@@ -636,9 +637,13 @@ class Logger(object):
 
         # Print in the order of sorted lower keys.
         logtmp = ""
+        cnt = 0
         for k_ in sorted(key_map.keys()):
+            cnt = cnt + 1
             real_key = key_map[k_]
             logtmp += "('%s': %s) " % (real_key, self.args.__dict__[real_key])
+            if cnt % 5 == 0:
+                logtmp += '\n'
         self.print(logtmp + "\n", unprefix=True)
 
     def save_env_snapshot(self):
@@ -648,14 +653,15 @@ class Logger(object):
             yaml.dump(self.args.__dict__, f, indent=4)
 
         # Save system info.
-        os.system("nvidia-smi >> {}".format(pjoin(self.log_path, "nvidia-smi.log")))
-        os.system("gpustat >> {}".format(pjoin(self.log_path, "gpustat.log")))
-        os.system("who -b >> {}".format(pjoin(self.log_path, "who.log")))
-        os.system("who >> {}".format(pjoin(self.log_path, "who.log")))
+        mkdirs(pjoin(self.exp_path, "machine-info"), exist_ok = True)
+        os.system("nvidia-smi >> {}".format(pjoin(self.exp_path, "machine-info/nvidia-smi.log")))
+        os.system("gpustat >> {}".format(pjoin(self.exp_path, "machine-info/gpustat.log")))
+        os.system("who -b >> {}".format(pjoin(self.exp_path, "machine-info/who.log")))
+        os.system("who >> {}".format(pjoin(self.exp_path, "machine-info/who.log")))
 
         # Save git info.
         if self.use_git:
-            os.system("git status >> {}".format(pjoin(self.log_path, "git_status.log")))
+            os.system("git status >> {}".format(pjoin(self.exp_path, "machine-info/git_status.log")))
 
     def plot(self, name, out_path):
         self.log_tracker.plot(name, out_path)
