@@ -14,7 +14,6 @@ from fnmatch import fnmatch
 
 import numpy as np
 import yaml
-import subprocess
 
 from smilelogging.slutils import blue, green, red, yellow
 
