@@ -13,8 +13,8 @@ from datetime import datetime
 from fnmatch import fnmatch
 
 import numpy as np
-import pynvml
 import yaml
+import subprocess
 
 from smilelogging.slutils import blue, green, red, yellow
 
@@ -42,6 +42,17 @@ def run_shell_command(cmd):
         result = subprocess.run(cmd.split(), stdout=subprocess.PIPE)
     result = result.stdout.decode("utf-8").strip().split("\n")
     return result
+
+
+def check_command_installed(cmd: str):
+    """Check whether a system command, indicated by `cmd`, is installed."""
+    try:
+        result = subprocess.run(
+            [f"{cmd}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
 
 
 def moving_average(x, N=10):
@@ -372,10 +383,8 @@ class Logger(object):
         # Get the caller file name and line number
         if callinfo is None:
             result = traceback.extract_stack()
-            caller = result[len(result) - 2]
-            file_path_of_caller = (
-                str(caller).split(",")[0].lstrip("<FrameSummary file ")
-            )
+            caller = result[-2]
+            file_path_of_caller = caller.filename
             filename = os.path.relpath(file_path_of_caller)
             if f"{os.sep}site-packages{os.sep}" in filename:
                 filename = filename.split(f"{os.sep}site-packages{os.sep}")[1]
@@ -488,8 +497,8 @@ class Logger(object):
     ):
         """Reload logger.info in python logging"""
         result = traceback.extract_stack()
-        caller = result[len(result) - 2]
-        file_path_of_caller = str(caller).split(",")[0].lstrip("<FrameSummary file ")
+        caller = result[-2]  # The second last file is the caller of logger.info.
+        file_path_of_caller = caller.filename
         filename = os.path.relpath(file_path_of_caller)
         if f"{os.sep}site-packages{os.sep}" in filename:
             filename = filename.split(f"{os.sep}site-packages{os.sep}")[1]
@@ -601,24 +610,18 @@ class Logger(object):
         return userip, hostname
 
     def print_script(self):
-        script = f"hostname: {self.hostname}  userip: {self.userip}\n"
-        script += "cd %s\n" % os.path.abspath(os.getcwd())
-        if self.ddp:
-            program = (
-                "OMP_NUM_THREADS=12 MKL_SERVICE_FORCE_INTEL=1 CUDA_VISIBLE_DEVICES=<ToAdd> "
-                "python -m torch.distributed.run --nproc_per_node <ToAdd>"
-            )
-            script += " ".join([program, *sys.argv])
-        else:
-            if "CUDA_VISIBLE_DEVICES" in os.environ:
-                gpu_id = os.environ["CUDA_VISIBLE_DEVICES"]
-            else:
-                pynvml.nvmlInit()
-                num_total_gpus = pynvml.nvmlDeviceGetCount()
-                gpu_id = ",".join([str(x) for x in range(num_total_gpus)])
-            script += " ".join(["CUDA_VISIBLE_DEVICES=%s python" % gpu_id, *sys.argv])
-        script = yellow(script)
+        """Print the script to the start of the log txt file."""
+        hostname_userip = f"hostname: {self.hostname} | userip: {self.userip}"
+        cd_cmd = "cd %s" % os.path.abspath(os.getcwd())
+        executable = os.path.basename(sys.executable)
+        script = executable + " " + " ".join(sys.argv)
+        if "CUDA_VISIBLE_DEVICES" in os.environ:
+            gpu_id = os.environ["CUDA_VISIBLE_DEVICES"]
+            script = f"CUDA_VISIBLE_DEVICES {gpu_id}" + script
+        script = yellow("\n".join([hostname_userip, cd_cmd, script]))
         script += "\n"
+        if self.ddp:
+            script += "Note! DDP is used.\n"
         self.print(script, unprefix=True)
 
     def print_args(self):
@@ -648,10 +651,13 @@ class Logger(object):
             yaml.dump(self.args.__dict__, f, indent=4)
 
         # Save system info.
-        os.system("nvidia-smi >> {}".format(pjoin(self.log_path, "nvidia-smi.log")))
-        os.system("gpustat >> {}".format(pjoin(self.log_path, "gpustat.log")))
-        os.system("who -b >> {}".format(pjoin(self.log_path, "who.log")))
-        os.system("who >> {}".format(pjoin(self.log_path, "who.log")))
+        if check_command_installed("nvidia-smi"):
+            os.system("nvidia-smi >> {}".format(pjoin(self.log_path, "nvidia-smi.log")))
+        if check_command_installed("gpustat"):
+            os.system("gpustat >> {}".format(pjoin(self.log_path, "gpustat.log")))
+        if check_command_installed("who"):
+            os.system("who -b >> {}".format(pjoin(self.log_path, "who.log")))
+            os.system("who >> {}".format(pjoin(self.log_path, "who.log")))
 
         # Save git info.
         if self.use_git:
