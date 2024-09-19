@@ -7,7 +7,7 @@ import pytz
 
 from .slutils import get_exp_name_id, yellow
 
-tz = pytz.timezone("US/Eastern")
+tz = pytz.timezone("Asia/Shanghai")
 today = datetime.now(tz).strftime("*-%Y%m%d-*")
 
 parser = argparse.ArgumentParser()

@@ -23,6 +23,7 @@ pjoin = os.path.join
 timezone = datetime.now().astimezone().tzinfo  # Use local timezone.
 # endregion - imports
 
+
 # region - utils
 def run_shell_command(cmd):
     """Run shell command and return the output (string) in a list.
@@ -150,6 +151,7 @@ class LogTracker:
         return moving_average(self._metrics[k], window)
 
 # endregion - utils
+
 
 class Logger(object):
     passer = {}
@@ -336,14 +338,18 @@ class Logger(object):
             time_id: A string that indicates the time stamp of the experiment.
         """
         time_id = datetime.now(timezone).strftime("%m-%d-%y_%H:%M:%S")
-        expid = time_id[-6:]
+        #* @graenys
+        meta_exp_id = datetime.now(timezone).strftime("%m-%d-%y_%H%M%S")
+        expid = meta_exp_id[-6:]
         existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
         t0 = time.time()
         # Make sure the expid is unique.
         while len(existing_exps) > 0:
             time.sleep(1)
             time_id = datetime.now(timezone).strftime("%m-%d-%y_%H:%M:%S")
-            expid = time_id[-6:]
+            #* @graenys
+            meta_exp_id = datetime.now(timezone).strftime("%m-%d-%y_%H%M%S")
+            expid = meta_exp_id[-6:]
             existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
             if time.time() - t0 > 120:
                 self.print(
@@ -482,17 +488,18 @@ class Logger(object):
             )  # Add blanks to acc lines for easier identification
 
         if not unprefix:
-            now = datetime.now(timezone).strftime("%Y/%m/%d-%H:%M:%S")
-            prefix = "[%s %s %s] %s" % (self.ExpID[-6:], os.getpid(), now, info)
+            now = datetime.now(timezone).strftime("%m/%d/%y - %H:%M:%S")
+            # prefix = "[%s %s %s] %s" % (self.ExpID[-6:], os.getpid(), now, info)
+            prefix = "[%s - %s] %s" % (self.expname, now, info)  #* @graenys
             if self.debug:
-                prefix = "[%s %s %s] [%s] %s" % (
-                    self.ExpID[-6:],
-                    os.getpid(),
+                prefix = "[%s - %s] [%s] %s" % (
+                    self.expname,
+                    # os.getpid(),
                     now,
                     callinfo,
                     info,
                 )
-            prefix = blue(prefix)  # Render prefix with blue color
+            prefix = green(prefix)  # Render prefix with blue color
 
             # Render msg with colors
             if color is not None:
