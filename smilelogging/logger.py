@@ -19,6 +19,9 @@ import yaml
 
 from smilelogging.slutils import blue, green, red, yellow
 
+#* @graenys
+import copy  
+
 pjoin = os.path.join
 timezone = datetime.now().astimezone().tzinfo  # Use local timezone.
 # endregion - imports
@@ -222,7 +225,7 @@ class Logger(object):
         self.gen_img_path = pjoin(experiment_path, self._gen_img_dir)
         self.log_path = pjoin(experiment_path, self._log_dir)
         self.logplt_path = pjoin(self.log_path, "plot")
-        self.logtxt_path = pjoin(self.log_path, "log.txt")
+        self.logtxt_path = pjoin(self.log_path, "log.yaml")  #* @graenys
         self._cache_path = pjoin(experiment_path, ".caches")
         #TODO Modify as your requirement~
         mkdirs(self.log_path, exist_ok=True)
@@ -238,7 +241,7 @@ class Logger(object):
             os.rename(self.logtxt_path, new_f)
     
     def print_script(self):
-        script = f"hostname: {self.hostname}  userip: {self.userip}\n"
+        script = f"hostname: {self.hostname} | userip: {self.userip}\n"
         script += "cd %s\n" % os.path.abspath(os.getcwd())
         if self.ddp:
             program = (
@@ -254,9 +257,9 @@ class Logger(object):
                 num_total_gpus = pynvml.nvmlDeviceGetCount()
                 gpu_id = ",".join([str(x) for x in range(num_total_gpus)])
             script += " ".join(["CUDA_VISIBLE_DEVICES=%s python" % gpu_id, *sys.argv])
-        script = blue(script)
+        # script = blue(script)
         script += "\n"
-        self.print(script, unprefix=True)
+        self.print(script, unprefix=True, color='blue')
 
     def print_args(self):
         """Example: ('batch_size', 16) ('CodeID', 12defsd2) ('decoder', models/small16x_ae_base/d5_base.pth)
@@ -486,6 +489,7 @@ class Logger(object):
             msg = (
                 "  " * int(self.ExpID[-1]) + msg
             )  # Add blanks to acc lines for easier identification
+        msg_gray_scale = copy.deepcopy(msg)  #* @graenys
 
         if not unprefix:
             now = datetime.now(timezone).strftime("%m/%d/%y - %H:%M:%S")
@@ -499,9 +503,11 @@ class Logger(object):
                     callinfo,
                     info,
                 )
+            original_prefix = copy.deepcopy(prefix)
             prefix = green(prefix)  # Render prefix with blue color
 
             # Render msg with colors
+            # color = None #* @graenys
             if color is not None:
                 if color in ["green", "g"]:
                     msg = green(msg)
@@ -513,12 +519,26 @@ class Logger(object):
                     msg = yellow(msg)
                 else:
                     raise NotImplementedError
+            msg_gray_scale = original_prefix + msg  #* @graenys 
             msg = prefix + msg
+        else:  #* @graenys
+            if color is not None:
+                if color in ["green", "g"]:
+                    msg = green(msg)
+                elif color in ["red", "r"]:
+                    msg = red(msg)
+                elif color in ["blue", "b"]:
+                    msg = blue(msg)
+                elif color in ["yellow", "y"]:
+                    msg = yellow(msg)
+                else:
+                    raise NotImplementedError
+
 
         # Print
         flush = True
         if file is None:
-            self.logtxt.write(msg)
+            self.logtxt.write(msg_gray_scale)
             sys.stdout.write(msg)
             if flush:
                 self.logtxt.flush()
@@ -606,6 +626,7 @@ class Logger(object):
             color="yellow",
         )
 
+    #* Never used
     def print_v2(
         self,
         *value,
