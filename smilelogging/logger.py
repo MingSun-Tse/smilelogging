@@ -18,10 +18,10 @@ from types import SimpleNamespace
 import numpy as np
 import yaml
 
-from smilelogging.slutils import blue, green, red, yellow
+from smilelogging.slutils import bold, blue, green, red, yellow
 
 pjoin = os.path.join
-timezone = datetime.now().astimezone().tzinfo  # Use local timezone.
+TIMEZONE = datetime.now().astimezone().tzinfo  # Use local time zone.
 
 
 class Folder:
@@ -454,14 +454,14 @@ class Logger(object):
         Returns:
             timeid: A string that indicates the time stamp of the experiment.
         """
-        timeid = datetime.now(timezone).strftime(self.timeid_format)
+        timeid = datetime.now(TIMEZONE).strftime(self.timeid_format)
         expid = timeid[-6:]
         existing_exps = glob.glob(f"{self._experiments_path}/*{expid}*")
         t0 = time.time()
         # Make sure the expid is unique.
         while len(existing_exps) > 0:
             time.sleep(1)
-            timeid = datetime.now(timezone).strftime(self.timeid_format)
+            timeid = datetime.now(TIMEZONE).strftime(self.timeid_format)
             expid = timeid[-6:]
             existing_exps = glob.glob(f"{self._experiments_path}/*{expid}*")
             if time.time() - t0 > 120:
@@ -520,7 +520,7 @@ class Logger(object):
         if self.debug:
             prefix = self.logging_prefix["format_debug"]
         if "<time>" in prefix:
-            now = datetime.now(timezone).strftime(self.logging_prefix["time_format"])
+            now = datetime.now(TIMEZONE).strftime(self.logging_prefix["time_format"])
             prefix = prefix.replace("<time>", now)
         if "<pid>" in prefix:
             prefix = prefix.replace("<pid>", self.pid)
@@ -692,7 +692,7 @@ class Logger(object):
 
     def print_script(self):
         """Print the script to the start of the log txt file."""
-        hostname_userip = f"hostname: {self.hostname} - userip: {self.userip} - codeid: {self.codeid} - pid: {self.pid}"
+        hostname_userip = f"hostname: {self.hostname} - userip: {self.userip} - codeid: {self.codeid} - pid: {self.pid} - timezone: {TIMEZONE}"
         cd_cmd = "cd %s" % os.path.abspath(os.getcwd())
         executable = os.path.basename(sys.executable)
         script = executable + " " + " ".join(sys.argv)
@@ -743,10 +743,10 @@ class Logger(object):
         if self.args.debug or not cache_code["is_open"]:
             return
 
-        cache_script = cache_code["script"]
+        cache_script = os.path.expanduser(cache_code["script"])  # In case ~ is used.
         if os.path.exists(cache_script):
             t0 = time.time()
-            logtmp = f"==> Caching code to '{yellow(self._cache_path)}' using the provided script {yellow(cache_script)}"
+            logtmp = f"==> Caching code to {bold(self._cache_path)} using the provided script {bold(cache_script)}"
             self.print(logtmp)
             cmd = f"sh {cache_script} {self._cache_path} > /dev/null"
             os.system(cmd)
@@ -759,4 +759,4 @@ class Logger(object):
             print("%s\n" % str(model), file=f, flush=True)
 
     def timenow(self):
-        return datetime.now(timezone).strftime("%Y/%m/%d-%H:%M:%S")
+        return datetime.now(TIMEZONE).strftime("%Y/%m/%d-%H:%M:%S")

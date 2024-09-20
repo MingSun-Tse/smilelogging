@@ -28,16 +28,16 @@ experiment_folder_name:
 
 # Customize the logging prefix format.
 logging_prefix: 
-  format: "<expid> - <pid> x <time>"
+  format: "<expid> - <time>"
   format_debug: "<expid> - <callinfo> - <time>"
-  time_format: "%m.%d %H.%M.%S"
+  time_format: "%m.%d at %H.%M.%S"
   color: blue
   
 
 # Backup code.
 cache_code:
   is_open: True
-  script: "/Users/huanwang/Projects/encode_lab_research_tools/experimenting_tools/cache_code.sh"
+  script: ~/Projects/encode_lab_research_tools/experimenting_tools/cache_code.sh
 
 
 
