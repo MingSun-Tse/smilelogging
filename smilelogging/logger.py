@@ -315,7 +315,11 @@ class Logger(object):
         self.log_path = self.experiment_folder.log.path
         self.logtxt_path = pjoin(self.experiment_folder.log.path, self._logtxt_name)
         self.weights_path = self.experiment_folder.weights.path
+        self._cache_path = pjoin(self.experiment_folder.path, ".caches")
         self.set_up_logtxt()
+
+        # Set up logging prefix color.
+        self.logging_prefix_color_fn = self._set_up_logging_prefix_color()
 
         # Handle the DDP case.
         self._figure_out_rank()
@@ -332,9 +336,6 @@ class Logger(object):
         self.save_env_snapshot()
         if self.global_rank in [-1, 0]:  # Only the main process does caching.
             self._backup_code()
-
-        # Set up logging prefix color.
-        self.logging_prefix_color_fn = self._set_up_logging_prefix_color()
 
     def _set_up_logging_prefix_color(self):
         """Set up log prefix color function."""
@@ -365,6 +366,11 @@ class Logger(object):
         assert os.path.exists(
             self.experiment_folder.log.path
         ), "Folder `log` not exist under {}. Please check!".format(
+            self.experiment_folder.path
+        )
+        assert os.path.exists(
+            pjoin(self.experiment_folder.path, ".caches")
+        ), "Folder `.caches` not exist under {}. Please check!".format(
             self.experiment_folder.path
         )
 
@@ -711,8 +717,8 @@ class Logger(object):
         with open(pjoin(self.log_path, "args.yaml"), "w") as f:
             yaml.dump(self.args.__dict__, f, indent=4)
 
-        # Save smileconfig.
-        with open(pjoin(self.log_path, "smileconfig.yaml"), "w") as f:
+        # Save smilelogging config.
+        with open(pjoin(self.log_path, "smilelogging_config.yaml"), "w") as f:
             yaml.dump(self.smileconfig.__dict__, f, indent=4)
 
         # Save system info.
@@ -737,12 +743,12 @@ class Logger(object):
         if self.args.debug or not cache_code["is_open"]:
             return
 
-        cache_script = cache_code.script
+        cache_script = cache_code["script"]
         if os.path.exists(cache_script):
             t0 = time.time()
             logtmp = f"==> Caching code to '{yellow(self._cache_path)}' using the provided script {yellow(cache_script)}"
             self.print(logtmp)
-            cmd = f"sh {cache_script} {self._cache_path}"
+            cmd = f"sh {cache_script} {self._cache_path} > /dev/null"
             os.system(cmd)
             logtmp = f"==> Caching done (time: {time.time() - t0:.2f}s)"
             self.print(logtmp)
