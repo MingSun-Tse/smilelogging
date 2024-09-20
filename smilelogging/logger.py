@@ -1,7 +1,6 @@
 import builtins
 import getpass
 import glob
-import logging
 import os
 import socket
 import subprocess
@@ -12,11 +11,12 @@ from collections import OrderedDict
 from datetime import datetime
 from fnmatch import fnmatch
 import shutil
-from pprint import pprint
 from types import SimpleNamespace
 
 import numpy as np
 import yaml
+import warnings
+from glob import glob
 
 from smilelogging.slutils import bold, blue, green, red, yellow
 
@@ -88,11 +88,24 @@ def _pretty_dict_format(a_dict: dict):
 
 def create_folder_structure(
     experiments_path: str,
-    experiment_folder_name: str,
+    experiment_folder: str,
     experiment_folder_structure: dict,
+    rank: int,
 ):
+    """Create folders based on provided folder structure.
+    Args:
+        experiments_path: Path of the folder that hosts all experiments.
+        experiment_folder: Name of the experiment folder to be created.
+        experiment_folder_structure: A dict to indicate the folder structure.
+        rank: Integer. The global rank of current process.
+
+    Returns:
+        expfolder: Experiment folder, which is an instance of class Folder.
+    """
     uniform_experiment_name = "experiment"
     expfolder = Folder(path=experiments_path)
+    if rank > 0:
+        expfolder = Folder(path=pjoin(experiments_path, "OtherRanks"))
 
     def _create_structure(base_folder, structure):
         base_folder_path = base_folder.path
@@ -100,8 +113,8 @@ def create_folder_structure(
             key = subfolder
             if subfolder.startswith("<") and subfolder.endswith(
                 ">"
-            ):  # This indicates the name should be replaced. E.g., <experiment_folder_name>
-                subfolder = experiment_folder_name
+            ):  # This indicates the name should be replaced. E.g., <experiment_folder>
+                subfolder = experiment_folder
                 key = uniform_experiment_name
 
             # Create the full path for the current item
@@ -170,7 +183,7 @@ def moving_average(x, N=10):
 
 
 def get_experiment_path(ExpID):
-    full_path = glob.glob("Experiments/*%s*" % ExpID)
+    full_path = glob("Experiments/*%s*" % ExpID)
     assert (
         len(full_path) == 1
     ), "There should be only ONE folder with <ExpID> in its name"
@@ -279,7 +292,7 @@ class Logger(object):
         smileconfig = SimpleNamespace(**smileconfig_dict)  # Convert dict to attributes.
         self.smileconfig = smileconfig
         self.logging_prefix = smileconfig.logging_prefix
-        self.timeid_format = smileconfig.experiment_folder_name["timeid_format"]
+        self._timeid_format = "%Y%m%d.%H%M%S"
 
         # Some default folder names.
         self._experiments_path = smileconfig_dict.get("experiments_path", "Experiments")
@@ -293,20 +306,22 @@ class Logger(object):
         self.userip, self.hostname = self.get_userip()
 
         # Get various id's.
-        self.timeid = self._get_timeid()
-        self.expid = self.timeid[-6:]
         self.pid = str(os.getpid())
         self.codeid = self._get_codeid()
         self.nodeid = "%03d" % int(self.userip.split(".")[-1])
+        self.timeid = self._get_timeid()
+        self.expid = self.timeid[-6:]
+        self._ExpID = f"SERVER{self.nodeid}-{self.timeid}"
 
         # Get experiment folder name.
-        self._experiment_folder_name = self._get_experiment_folder_name()
+        self._experiment_folder = self._get_experiment_folder()
 
         # Create the folder structure. This can be done only after the ExpID is created.
         experiments_folder = create_folder_structure(
             experiments_path=self._experiments_path,
-            experiment_folder_name=self._experiment_folder_name,
+            experiment_folder=self._experiment_folder,
             experiment_folder_structure=smileconfig.experiment_folder_structure,
+            rank=self.global_rank,
         )
         print("Creating experiment folder is done. Tree structure:")
         print_tree(experiments_folder.experiment.path)
@@ -314,6 +329,7 @@ class Logger(object):
         self._check_folder_structure()
         self.log_path = self.experiment_folder.log.path
         self.logtxt_path = pjoin(self.experiment_folder.log.path, self._logtxt_name)
+        self.sysinfo_path = self.experiment_folder.system_info.path
         self.weights_path = self.experiment_folder.weights.path
         self._cache_path = pjoin(self.experiment_folder.path, ".caches")
         self.set_up_logtxt()
@@ -336,6 +352,15 @@ class Logger(object):
         self.save_env_snapshot()
         if self.global_rank in [-1, 0]:  # Only the main process does caching.
             self._backup_code()
+
+    @property
+    def ExpID(self):
+        warnings.warn(
+            "The attribute 'ExpID' is deprecated and will be removed. Please use 'timeid' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._ExpID
 
     def _set_up_logging_prefix_color(self):
         """Set up log prefix color function."""
@@ -364,8 +389,8 @@ class Logger(object):
             self.experiment_folder.path
         )
         assert os.path.exists(
-            self.experiment_folder.log.path
-        ), "Folder `log` not exist under {}. Please check!".format(
+            self.experiment_folder.system_info.path
+        ), "Folder `system_info` not exist under {}. Please check!".format(
             self.experiment_folder.path
         )
         assert os.path.exists(
@@ -374,15 +399,15 @@ class Logger(object):
             self.experiment_folder.path
         )
 
-    def _get_experiment_folder_name(self):
+    def _get_experiment_folder(self):
         """Get the experiment folder name based on the provided template in smilelogging config file."""
-        folder_name = self.smileconfig.experiment_folder_name["format"]
+        folder_name = self.smileconfig.experiment_folder["format"]
         if self._ddp:
-            folder_name = self.smileconfig.experiment_folder_name["format_ddp"]
+            folder_name = self.smileconfig.experiment_folder["format_ddp"]
         if "<timeid>" in folder_name:
             folder_name = folder_name.replace("<timeid>", self.timeid)
         if "<rank>" in folder_name:
-            folder_name = folder_name.replace("<rank>", self.global_rank)
+            folder_name = folder_name.replace("<rank>", str(self.global_rank))
         if "<nodeid>" in folder_name:
             folder_name = folder_name.replace("<nodeid>", self.nodeid)
         if "<experiment_name>" in folder_name:
@@ -450,27 +475,48 @@ class Logger(object):
 
     def _get_timeid(self) -> str:
         """Get time stamp for the experiment folder name. The expid MUST be unique.
+        If multi-processing is used, only the main process can create the timeid;
+        the others will simply wait for the main process to finish creating the timeid.
 
         Returns:
             timeid: A string that indicates the time stamp of the experiment.
         """
-        timeid = datetime.now(TIMEZONE).strftime(self.timeid_format)
-        expid = timeid[-6:]
-        existing_exps = glob.glob(f"{self._experiments_path}/*{expid}*")
-        t0 = time.time()
-        # Make sure the expid is unique.
-        while len(existing_exps) > 0:
-            time.sleep(1)
-            timeid = datetime.now(TIMEZONE).strftime(self.timeid_format)
-            expid = timeid[-6:]
-            existing_exps = glob.glob(f"{self._experiments_path}/*{expid}*")
-            if time.time() - t0 > 120:
-                self.print(
-                    "Hanged for more than 2 mins when creating the experiment folder, "
-                    "which is unusual. Please try again."
-                )
-                exit(1)
-        return timeid
+        time_limit = (
+            120  # A process must finish creating the timeid by this time limit.
+        )
+        failure_msg = (
+            "Hanged for over 2 mins when creating the time id, "
+            "which is unusual. Please try again."
+        )
+        if self.global_rank in [-1, 0]:
+            timeid = datetime.now(TIMEZONE).strftime(self._timeid_format)
+            existing_exps = glob(f"{self._experiments_path}/*{timeid}*")
+            t0 = time.time()
+            # Make sure the expid is unique.
+            while len(existing_exps) > 0:
+                time.sleep(1)
+                timeid = datetime.now(TIMEZONE).strftime(self._timeid_format)
+                existing_exps = glob(f"{self._experiments_path}/*{timeid}*")
+                if time.time() - t0 > time_limit:
+                    self.print(failure_msg)
+                    exit(1)
+            return timeid
+        else:
+            # TODO: Corner case - if the minute is 59 and next the main process creates
+            # a timeid with minute = 60, the while loop will fail.
+            timeid = datetime.now(TIMEZONE).strftime(self._timeid_format)
+            date_hm = timeid[:-2]
+            exps = glob(f"{self._experiments_path}/*{self.args.experiment_name}*")
+            exps = [e for e in exps if date_hm in e and self.nodeid in e]
+            t0 = time.time()
+            while len(exps) == 0:  # Main process still not created the folder.
+                time.sleep(1)
+                exps = glob(f"{self._experiments_path}/*{self.args.experiment_name}*")
+                exps = [e for e in exps if date_hm in e and self.nodeid in e]
+                if time.time() - t0 > time_limit:
+                    self.print(failure_msg)
+                    exit(1)
+            return date_hm + exps[0].split(date_hm)[1][:2]
 
     def _get_experiment_path(self):
         """Get a unique directory for each experiment."""
@@ -528,6 +574,8 @@ class Logger(object):
             prefix = prefix.replace("<expid>", self.expid)
         if "<callinfo>" in prefix:
             prefix = prefix.replace("<callinfo>", callinfo)
+        if "<rank>" in prefix:
+            prefix = prefix.replace("<rank>", f"{self.global_rank}")
         prefix += " $ "
 
         # Add color.
@@ -698,7 +746,7 @@ class Logger(object):
         script = executable + " " + " ".join(sys.argv)
         if "CUDA_VISIBLE_DEVICES" in os.environ:
             gpu_id = os.environ["CUDA_VISIBLE_DEVICES"]
-            script = f"CUDA_VISIBLE_DEVICES {gpu_id}" + script
+            script = f"CUDA_VISIBLE_DEVICES {gpu_id} " + script
         script = yellow("\n".join([hostname_userip, cd_cmd, script]))
         script += "\n"
         if self._ddp:
@@ -715,24 +763,28 @@ class Logger(object):
         """Save environment snapshot (such as args, gpu info, users, git info)."""
         # Save args.
         with open(pjoin(self.log_path, "args.yaml"), "w") as f:
-            yaml.dump(self.args.__dict__, f, indent=4)
+            yaml.dump(self.args.__dict__, f, indent=2)
 
         # Save smilelogging config.
-        with open(pjoin(self.log_path, "smilelogging_config.yaml"), "w") as f:
-            yaml.dump(self.smileconfig.__dict__, f, indent=4)
+        with open(pjoin(self.sysinfo_path, "smilelogging_config.yaml"), "w") as f:
+            yaml.dump(self.smileconfig.__dict__, f, indent=2)
 
         # Save system info.
         if check_command_installed("nvidia-smi"):
-            os.system("nvidia-smi >> {}".format(pjoin(self.log_path, "nvidia-smi.txt")))
+            os.system(
+                "nvidia-smi >> {}".format(pjoin(self.sysinfo_path, "nvidia-smi.txt"))
+            )
         if check_command_installed("gpustat"):
-            os.system("gpustat >> {}".format(pjoin(self.log_path, "gpustat.txt")))
+            os.system("gpustat >> {}".format(pjoin(self.sysinfo_path, "gpustat.txt")))
         if check_command_installed("who"):
-            os.system("who -b >> {}".format(pjoin(self.log_path, "who.txt")))
-            os.system("who >> {}".format(pjoin(self.log_path, "who.txt")))
+            os.system("who -b >> {}".format(pjoin(self.sysinfo_path, "who.txt")))
+            os.system("who >> {}".format(pjoin(self.sysinfo_path, "who.txt")))
 
         # Save git info.
         if self.use_git:
-            os.system("git status >> {}".format(pjoin(self.log_path, "git_status.log")))
+            os.system(
+                "git status >> {}".format(pjoin(self.sysinfo_path, "git_status.txt"))
+            )
 
     def plot(self, name, out_path):
         self.log_tracker.plot(name, out_path)

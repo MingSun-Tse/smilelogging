@@ -7,30 +7,26 @@ debug_path: ./Debug_Dir
 
 
 # Folder structure of each experiment. 
-# <experiment_folder_name> means this is a placeholder - Do NOT change it. You may customize the others not wrapped by <>.
+# <experiment_folder> means this is a placeholder - Do NOT change it. You may customize the others not wrapped by <>.
 experiment_folder_structure:
-  <experiment_folder_name>:
+  <experiment_folder>:
     weights:
     log: 
       log.txt
     system_info:
     .caches:
-    some_folder:
-      some_file.txt
 
 
 # Customize the format of experiment folder name.
-experiment_folder_name:
-  format: "<experiment_name>-SVR<nodeid>.<timeid>"
-  format_ddp: "<experiment_name>-SVR<nodeid>.<timeid>.RANK<rank>"
-  timeid_format: "%Y%m%d.%H%M%S"
-  
+experiment_folder:
+  format: "<experiment_name>--SERVER<nodeid>.<timeid>"
+  format_ddp: "<experiment_name>--SERVER<nodeid>.<timeid>.<rank>"  
 
 # Customize the logging prefix format.
 logging_prefix: 
-  format: "<expid> - <time>"
-  format_debug: "<expid> - <callinfo> - <time>"
-  time_format: "%m.%d at %H.%M.%S"
+  format: "<expid> R<rank> <time>"
+  format_debug: "<expid> R<rank> <time> <callinfo>"
+  time_format: "%m%d %H:%M:%S"
   color: blue
   
 
