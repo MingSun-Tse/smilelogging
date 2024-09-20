@@ -1,0 +1,45 @@
+# Path of the folder to store ALL the experiments.
+experiments_path: ./Experiments
+
+
+#  Path of the folder to store experiments when debugging.
+debug_path: ./Debug_Dir
+
+
+# Folder structure of each experiment. 
+# <experiment_folder_name> means this is a placeholder - Do NOT change it. You may customize the others not wrapped by <>.
+experiment_folder_structure:
+  <experiment_folder_name>:
+    weights:
+    log: 
+      log.txt
+    system_info:
+    .caches:
+
+
+# Customize the format of experiment folder name.
+experiment_folder_name:
+  format: "<experiment_name>-SVR<nodeid>.<timeid>"
+  format_ddp: "<experiment_name>-SVR<nodeid>.<timeid>.RANK<rank>"
+  timeid_format: "%Y%m%d.%H%M%S"
+  
+
+# Customize the logging prefix format.
+logging_prefix: 
+  format: "<expid> - <time>"
+  format_debug: "<expid> - <callinfo> - <time>"
+  time_format: "%m.%d %H.%M.%S"
+  color: blue
+  
+
+# Backup code.
+cache_code:
+  is_open: False
+  script: scripts/cache_code.sh
+
+
+
+
+
+
+

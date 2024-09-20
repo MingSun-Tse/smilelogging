@@ -9,36 +9,19 @@ from smilelogging.slutils import blue, green, red, yellow, bold, update_args
 
 argparser = configargparse.ArgumentParser()
 argparser.add_argument(
-    "--experiment_name", type=str, default="", help="Experiment name"
-)
-argparser.add_argument(
-    "--experiments_dir",
-    type=str,
-    default="./Experiments",
-    help="Path of the folder to store all experiments.",
+    "--experiment_name", type=str, default="", help="Experiment name."
 )
 argparser.add_argument(
     "--debug",
     action="store_true",
-    help="All the logs will be saved to `Debug_Dir`",
-)
-argparser.add_argument("--no_cache", action="store_true", help="not cache code")
-argparser.add_argument(
-    "--cache_code",
-    type=str,
-    default="scripts/cache_code.sh",
-    help="Path of the shell script to cache code",
+    help="All the logs will be saved to `Debug_Dir`.",
 )
 argparser.add_argument(
     "--resume_expid",
     type=str,
     default="",
-    help="The expid used to uniquely identify an experiment",
+    help="The expid used to uniquely identify an experiment.",
 )
-
-# Customize smilelogging setups
-argparser.add_argument("--sl.ON", action="store_true")
-argparser.add_argument("--sl.config", type=str, default=".smilelogging_cfg")
 
 
 def warn_deprecated_args(old, new):
