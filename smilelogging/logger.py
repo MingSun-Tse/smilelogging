@@ -277,7 +277,6 @@ class Logger(object):
     def __init__(self, args, overwrite_print=False):
         self.args = args
         self.overwrite_print = overwrite_print
-        self.debug = self.args.debug or "debug" in self.args.experiment_name.lower()
         self._logtxt_name = "log.txt"
 
         # Load smilelogging config.
@@ -563,7 +562,7 @@ class Logger(object):
     def _get_logging_prefix(self, callinfo: str):
         """Get the prefix for each line during logging."""
         prefix = self.logging_prefix["format"]
-        if self.debug:
+        if self.args.debug:
             prefix = self.logging_prefix["format_debug"]
         if "<time>" in prefix:
             now = datetime.now(TIMEZONE).strftime(self.logging_prefix["time_format"])
