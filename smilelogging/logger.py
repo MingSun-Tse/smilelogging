@@ -382,7 +382,7 @@ class Logger(object):
         if "<timeid>" in folder_name:
             folder_name = folder_name.replace("<timeid>", self.timeid)
         if "<rank>" in folder_name:
-            folder_name = folder_name.replace("<rank>", self.global_rank)
+            folder_name = folder_name.replace("<rank>", str(self.global_rank))
         if "<nodeid>" in folder_name:
             folder_name = folder_name.replace("<nodeid>", self.nodeid)
         if "<experiment_name>" in folder_name:
