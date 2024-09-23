@@ -303,8 +303,9 @@ class Logger(object):
         self._experiment_folder_name = self._get_experiment_folder_name()
 
         # Create the folder structure. This can be done only after the ExpID is created.
+        experiments_path = self._debug_path if args.debug else self._experiments_path
         experiments_folder = create_folder_structure(
-            experiments_path=self._experiments_path,
+            experiments_path=experiments_path,
             experiment_folder_name=self._experiment_folder_name,
             experiment_folder_structure=smileconfig.experiment_folder_structure,
         )
