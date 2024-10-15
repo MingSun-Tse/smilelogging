@@ -138,3 +138,4 @@ test_example/Experiments
 test_example/.script_history
 smilelogging/ScriptsTools
 .DS_Store
+test_example/.smilelogging_config.yaml

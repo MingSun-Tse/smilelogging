@@ -19,7 +19,7 @@ These steps are pretty simple, but if you implement them over and over again in 
 
 ## Usage
 
-**Step 0: Install the package (>= python3.4)**
+**Step 0: Install the package**
 ```bash
 # We will use PyTorch code as an example, so please also install PyTorch here
 pip install torch torchvision
@@ -27,7 +27,7 @@ pip install torch torchvision
 # Clone this repo and install from source (pypi may not be the lastest!)
 git clone https://github.com/MingSun-Tse/smilelogging.git
 cd smilelogging
-pip install -e .
+pip install .
 ```
 
 **Step 1: Modify your code**
@@ -55,72 +55,96 @@ We already put the modified code at `test_example/main.py`, so you do not need t
 **Step 2: Run experiments**
 
 The original MNIST training snippet is:
-```console
+```bash
 python main.py
 ```
 
 Now, try this:
-```console
+```bash
 python main.py --experiment_name lenet_mnist
 ```
-> This snippet will set up an experiment folder at path `Experiments/lenet_mnist_XXX`. That `XXX` thing is an `ExpID` automatically assigned by the time running this snippet. Below is an example on my PC:
+
+
+## Configure the logger
+
+Starting `v0.5`, we introduce a config file to customize the experiment folder structure. The configure file, a hidden YAML file named `.smilelogging_config.yaml`, is supposed to be located at the _root of each project_. When you run your code for the first time, the config file will be created _automatically_ for you. For example, in the above MNIST example, before running the code, there is only `main.py` in the `test_example` folder
+<p align="center">
+    <img src="images/before_running.png"  width="400px" >
+</p>
+
+After running the code, a hidden file `.smilelogging_config.yaml` will be created in the `test_example` folder.
+<p align="center">
+    <img src="images/after_running.png"  width="400px" >
+</p>
+
+You can customize the experiment folder strcuture by editing the config file. 
+
+
+### Explanations about the config file
+<details>
+<summary>Default configs</summary>
+
+```yaml
+# Path of the folder to store ALL the experiments.
+experiments_path: ./Experiments
+
+
+#  Path of the folder to store experiments when debugging.
+debug_path: ./Debug_Dir
+
+
+# Folder structure of each experiment. 
+# <experiment_folder> means this is a placeholder - Do NOT change it. You may customize the others not wrapped by <>.
+experiment_folder_structure:
+<experiment_folder>:
+    weights:
+    log: 
+    log.txt
+    system_info:
+    .caches:
+
+
+# Customize the format of experiment folder name.
+experiment_folder:
+format: "<experiment_name>--SERVER<nodeid>.<timeid>"
+format_ddp: "<experiment_name>--SERVER<nodeid>.<timeid>.<rank>"  
+
+# Customize the logging prefix format.
+logging_prefix: 
+format: "<expid> R<rank> <time>"
+format_debug: "<expid> R<rank> <time> <callinfo>"
+time_format: "%m%d %H:%M:%S"
+color: blue
+
+
+# Backup code.
+cache_code:
+is_open: True
+script: ~/Projects/encode_lab_research_tools/experimenting_tools/cache_code.sh
 ```
-Experiments/
-└── lenet_mnist_SERVER138-20211022-184126
-    ├── gen_img
-    ├── log
-    │   ├── git_status.txt
-    │   ├── gpu_info.txt
-    │   ├── log.txt
-    │   ├── params.yaml
-    │   └── plot
-    └── weights
+</details>
+
+
+<details>
+<summary>Config explanation: experiment_folder_structure</summary>
+
+The indented structure under the `experiment_folder_structure` describes the folder structure of each experiment. The name with a colon means it is a folder. The name without a colon means it is a file. The default folder and file structure is must-have, so do not change them. You can add more folders, e.g., you may want to have a folder to save the generated images for image generation tasks. Below, we add an `generated_images` folder to save the generated images:
+```YAML
+# Folder structure of each experiment. 
+# <experiment_folder> means this is a placeholder - Do NOT change it. You may customize the others not wrapped by <>.
+experiment_folder_structure:
+  <experiment_folder>:
+    weights:
+    log: 
+      log.txt
+    system_info:
+    .caches:
+    generated_images:
 ```
-<h4 align="center">:sparkles:Congrats:beers:You're all set:exclamation:</h4>
+Then, in your code, you can access the `generated_images` folder by using `logger.experiment_folder.generated_images.path`.
+</details>
 
 
-As seen, there will be 3 folders automatically created: `gen_img`, `weights`, `log`. Log text will be saved in `log/log.txt`, arguments saved in `log/params.yaml` and in the head of `log/log.txt`. Below is an example of the first few lines of `log/log.txt`:
-```console
-cd /home/wanghuan/Projects/smilelogging/test_example
-python main.py --project_name lenet_mnist
-
-('batch_size': 64) ('cache_ignore': ) ('CodeID': 023534a) ('debug': False) ('dry_run': False) ('epochs': 14) ('gamma': 0.7) ('log_interval': 10) ('lr': 1.0) ('no_cuda': False) ('note': ) ('project_name': lenet_mnist) ('save_model': False) ('seed': 1) ('test_batch_size': 1000)
-
-[184126 6424 2021/10/22-18:41:29] ==> Caching various config files to 'Experiments/lenet_mnist_SERVER138-20211022-184126/.caches'
-```
-Note, it tells us 
-- (1) where is the code
-- (2) what snippet is used when running this experiment
-- (3) what arguments are used
-- (4) what is the CodeID -- useful when rolling back to prior code versions (`git reset --hard <CodeID>`)
-- (5) where the code files (*.py, *.json, *.yaml etc) are backuped -- note the log line `==> Caching various config files to ...`. Ideally, CodeID is already enough to get previous code. Caching code files is a double insurance
-- (6) At the begining of each log line, the prefix `[184126 6424 2021/10/22-18:41:29]` is automatically added if the `logger.print` func is used for print, where `184126` is short for the full ExpID `SERVER138-20211022-184126`, `6424` is the program pid (useful if you want to kill the job, e.g., `kill -9 6424`)
 
 
-## More Explanantions about the Folder Settings
 
-The `weights` folder is supposed to store the checkpoints during training; and `gen_img` is supposed to store the generated images during training (like in a generative model project). To use them in the code:
-```python
-weights_path = logger.weights_path
-gen_img_path = logger.gen_img_path
-log_path = logger.log_path
-```
-For more these path names, see [here](https://github.com/MingSun-Tse/smilelogging/blob/59b874947238aabd4abd08c065eea499ffdbbdfa/smilelogging/logger.py#L285).
-
-
-## More Explanantions about the Arguments and TIPs
-
-- If you are debugging code, you may not want to create an experiment folder under `Experiments`. Then use `--debug`, for example:
-```console
-python main.py --debug
-```
-This will save all the logs in `Debug_Dir`, instead of `Experiments` (`Experiments` is expected to store the *formal* experiment results).
-
-
-## Mission of this project
-We target **100% open** scientific experimenting: 
-- Every number or data point in the paper (either in tables or figures) is traceable with a log/checkpoint.
-- Releasing the reviewing comments and communication process.
-
-## Collaboration / Suggestions
-Currently, this is still an alpha project. Any collaboration or suggestions are welcome to Huan Wang (Email: `wang.huan@northeastern.edu`).
