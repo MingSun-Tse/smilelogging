@@ -225,7 +225,7 @@ class Logger(object):
         self.gen_img_path = pjoin(experiment_path, self._gen_img_dir)
         self.log_path = pjoin(experiment_path, self._log_dir)
         self.logplt_path = pjoin(self.log_path, "plot")
-        self.logtxt_path = pjoin(self.log_path, "log.yaml")  #* @graenys
+        self.logtxt_path = pjoin(self.log_path, "log.txt")  #* @graenys
         self._cache_path = pjoin(experiment_path, ".caches")
         #TODO Modify as your requirement~
         mkdirs(self.log_path, exist_ok=True)
@@ -292,7 +292,7 @@ class Logger(object):
             other_ranks_folder = ""
             rank = ""
         else:
-            other_ranks_folder = "" if self.global_rank == 0 else "OtherRanks"
+            other_ranks_folder = "" if self.global_rank == 0 else ".OtherRanks"
             rank = f"RK{self.global_rank}-"
 
         experiment_path = ""
