@@ -167,10 +167,15 @@ class Logger(object):
 
         # Logging folder names.
         self._experiments_dir = args.experiments_dir
-        self._debug_dir = "Debug_Dir"
+        self._debug_dir = "debug_folder"
         self._weights_dir = "weights"
         self._gen_img_dir = "gen_img"
         self._log_dir = "log"
+
+        #* effysion folders
+        self._checkpoints_dir = "checkpoints"
+        self._model_snapshot_dir = "model_snapshot"
+        self._validation_images_dir = "validation_images"
 
         # Handle the DDP case.
         self._figure_out_rank()
@@ -204,15 +209,15 @@ class Logger(object):
             yaml.dump(self.args.__dict__, f, indent=4)
 
         # Save system info.
-        mkdirs(pjoin(self.exp_path, "machine-info"), exist_ok = True)
-        os.system("nvidia-smi >> {}".format(pjoin(self.exp_path, "machine-info/nvidia-smi.log")))
-        os.system("gpustat >> {}".format(pjoin(self.exp_path, "machine-info/gpustat.log")))
-        os.system("who -b >> {}".format(pjoin(self.exp_path, "machine-info/who.log")))
-        os.system("who >> {}".format(pjoin(self.exp_path, "machine-info/who.log")))
+        mkdirs(pjoin(self.exp_path, "machine_information"), exist_ok = True)
+        os.system("nvidia-smi >> {}".format(pjoin(self.exp_path, "machine_information/nvidia-smi.log")))
+        os.system("gpustat >> {}".format(pjoin(self.exp_path, "machine_information/gpustat.log")))
+        os.system("who -b >> {}".format(pjoin(self.exp_path, "machine_information/who.log")))
+        os.system("who >> {}".format(pjoin(self.exp_path, "machine_information/who.log")))
 
         # Save git info.
         if self.use_git:
-            os.system("git status >> {}".format(pjoin(self.exp_path, "machine-info/git_status.log")))
+            os.system("git status >> {}".format(pjoin(self.exp_path, "machine_information/git_status.log")))
     
     def set_up_experiment_dir(self):
         """Set up a unique directory for each experiment."""
@@ -227,8 +232,17 @@ class Logger(object):
         self.logplt_path = pjoin(self.log_path, "plot")
         self.logtxt_path = pjoin(self.log_path, "log.txt")  #* @graenys
         self._cache_path = pjoin(experiment_path, ".caches")
+
+        #* effysion specific
+        self.checkpoints_dir = pjoin(experiment_path, self._checkpoints_dir)
+        self.model_snapshot_dir = pjoin(experiment_path, self._model_snapshot_dir)
+        self.validation_images_dir = pjoin(experiment_path, self._validation_images_dir)
+
         #TODO Modify as your requirement~
         mkdirs(self.log_path, exist_ok=True)
+        mkdirs(self.checkpoints_dir)
+        mkdirs(self.model_snapshot_dir)
+        mkdirs(self.validation_images_dir)
 
         # When resuming experiments, do not append to existing log.txt. Instead, we
         # prefer to create a new log txt and archive the old versions.

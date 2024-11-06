@@ -18,7 +18,7 @@ argparser.add_argument(
 argparser.add_argument(
     "--experiments_dir",
     type=str,
-    default="./Experiments",
+    default="./experiments",
     help="Path of the folder to store all experiments.",)
 
 argparser.add_argument(
