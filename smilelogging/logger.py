@@ -240,9 +240,9 @@ class Logger(object):
 
         #TODO Modify as your requirement~
         mkdirs(self.log_path, exist_ok=True)
-        mkdirs(self.checkpoints_dir)
-        mkdirs(self.model_snapshot_dir)
-        mkdirs(self.validation_images_dir)
+        mkdirs(self.checkpoints_dir, exist_ok=True)
+        mkdirs(self.model_snapshot_dir, exist_ok=True)
+        mkdirs(self.validation_images_dir, exist_ok=True)
 
         # When resuming experiments, do not append to existing log.txt. Instead, we
         # prefer to create a new log txt and archive the old versions.
