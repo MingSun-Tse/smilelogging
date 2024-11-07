@@ -295,7 +295,7 @@ class Logger(object):
             cnt = cnt + 1
             real_key = key_map[k_]
             logtmp += "('%s': %s) " % (real_key, self.args.__dict__[real_key])
-            if cnt % 5 == 0:
+            if cnt % 4 == 0:
                 logtmp += '\n'
         self.print(logtmp + "\n", unprefix=True)
     
