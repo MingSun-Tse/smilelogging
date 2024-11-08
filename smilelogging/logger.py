@@ -354,18 +354,18 @@ class Logger(object):
         Returns:
             time_id: A string that indicates the time stamp of the experiment.
         """
-        time_id = datetime.now(timezone).strftime("%m-%d-%y_%H:%M:%S")
+        time_id = datetime.now(timezone).strftime("%y-%m-%d_%H:%M:%S")
         #* @graenys
-        meta_exp_id = datetime.now(timezone).strftime("%m-%d-%y_%H%M%S")
+        meta_exp_id = datetime.now(timezone).strftime("%y-%m-%d_%H%M%S")
         expid = meta_exp_id[-6:]
         existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
         t0 = time.time()
         # Make sure the expid is unique.
         while len(existing_exps) > 0:
             time.sleep(1)
-            time_id = datetime.now(timezone).strftime("%m-%d-%y_%H:%M:%S")
+            time_id = datetime.now(timezone).strftime("%y-%m-%d_%H:%M:%S")
             #* @graenys
-            meta_exp_id = datetime.now(timezone).strftime("%m-%d-%y_%H%M%S")
+            meta_exp_id = datetime.now(timezone).strftime("%y-%m-%d_%H%M%S")
             expid = meta_exp_id[-6:]
             existing_exps = glob.glob(f"{self._experiments_dir}/*-{expid}")
             if time.time() - t0 > 120:
