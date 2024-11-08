@@ -506,7 +506,7 @@ class Logger(object):
         msg_gray_scale = copy.deepcopy(msg)  #* @graenys
 
         if not unprefix:
-            now = datetime.now(timezone).strftime("%m/%d/%y - %H:%M:%S")
+            now = datetime.now(timezone).strftime("%y/%m/%d - %H:%M:%S")
             # prefix = "[%s %s %s] %s" % (self.ExpID[-6:], os.getpid(), now, info)
             prefix = "[%s - %s] %s" % (self.expname, now, info)  #* @graenys
             if self.debug:
